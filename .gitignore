@@ -343,3 +343,6 @@ healthchecksdb
 
 #Dependencies
 Dependencies/
+
+#Binaries
+bin/
