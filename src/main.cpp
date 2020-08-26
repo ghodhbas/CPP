@@ -1,20 +1,16 @@
-//********************************************************** USING CGAL *******************************************************************************/
 #include <iostream>
-#include <fstream>
 #include "MyMesh.h"
 
 using namespace std;
 
 int main()
 {
-   Polyhedron m;
-   std::ifstream file("Meshes/plane.off");
-    if (!(file >> m)) {
-        cerr << "cannot read mesh";
-        return 1;
-    }
-
-    print_mesh_info(m);
+    Polyhedron m ;
+    MyMesh::import_OFF_file(m, "plane.off");
+    //MyMesh::import_OBJ_file(m, "plane.obj");
+    if (m.is_empty()) return 1;
+   
+    MyMesh::print_mesh_info(m);
     
     return EXIT_SUCCESS;
 }
