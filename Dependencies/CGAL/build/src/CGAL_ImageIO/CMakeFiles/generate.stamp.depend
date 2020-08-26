@@ -1,0 +1,8 @@
+# CMake generation dependency list for this directory.
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/FindPackageMessage.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/FindZLIB.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/SelectLibraryConfigurations.cmake
+C:/local/CGAL/cmake/modules/CGAL_SetupCGAL_ImageIODependencies.cmake
+C:/local/CGAL/src/CGAL_ImageIO/CMakeLists.txt
+C:/local/CGAL/src/CGAL_libs_verinfo.rc.in

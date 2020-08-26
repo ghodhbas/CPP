@@ -1,0 +1,10 @@
+# CMake generation dependency list for this directory.
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/FindPackageMessage.cmake
+C:/local/CGAL/cmake/modules/CGAL_GeneratorSpecificSettings.cmake
+C:/local/CGAL/cmake/modules/CGAL_SetupCGAL_CoreDependencies.cmake
+C:/local/CGAL/cmake/modules/CGAL_SetupGMP.cmake
+C:/local/CGAL/cmake/modules/FindGMP.cmake
+C:/local/CGAL/cmake/modules/FindMPFR.cmake
+C:/local/CGAL/src/CGAL_Core/CMakeLists.txt
+C:/local/CGAL/src/CGAL_libs_verinfo.rc.in

@@ -1,0 +1,37 @@
+# CMake generation dependency list for this directory.
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeCInformation.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeCXXInformation.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeCommonLanguageInclude.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeGenericSystem.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeInitializeConfigs.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeLanguageInformation.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeParseArguments.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeRCInformation.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeSystemSpecificInformation.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/CMakeSystemSpecificInitialize.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/Compiler/MSVC-C.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/Compiler/MSVC-CXX.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/GNUInstallDirs.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/Platform/Windows-MSVC-C.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/Platform/Windows-MSVC-CXX.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/Platform/Windows-MSVC.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/Platform/Windows.cmake
+C:/Program Files (x86)/CMake/share/cmake-3.18/Modules/Platform/WindowsPaths.cmake
+C:/local/CGAL/CMakeLists.txt
+C:/local/CGAL/build/CMakeFiles/3.18.2/CMakeCCompiler.cmake
+C:/local/CGAL/build/CMakeFiles/3.18.2/CMakeCXXCompiler.cmake
+C:/local/CGAL/build/CMakeFiles/3.18.2/CMakeRCCompiler.cmake
+C:/local/CGAL/build/CMakeFiles/3.18.2/CMakeSystem.cmake
+C:/local/CGAL/cmake/modules/CGALConfigVersion_binary_header_only.cmake.in
+C:/local/CGAL/cmake/modules/CGALConfig_binary_header_only.cmake.in
+C:/local/CGAL/cmake/modules/CGAL_CheckCXXFileRuns.cmake
+C:/local/CGAL/cmake/modules/CGAL_Common.cmake
+C:/local/CGAL/cmake/modules/CGAL_GeneratorSpecificSettings.cmake
+C:/local/CGAL/cmake/modules/CGAL_Macros.cmake
+C:/local/CGAL/cmake/modules/CGAL_SetupVLD.cmake
+C:/local/CGAL/cmake/modules/CGAL_VersionUtils.cmake
+C:/local/CGAL/cmake/modules/CGAL_add_test.cmake
+C:/local/CGAL/cmake/modules/CGAL_display_flags.cmake
+C:/local/CGAL/cmake/modules/CGAL_enable_end_of_configuration_hook.cmake
+C:/local/CGAL/cmake/modules/CGAL_target_use_TBB.cmake

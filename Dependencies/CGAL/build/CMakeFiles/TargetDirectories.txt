@@ -1,0 +1,12 @@
+C:/local/CGAL/build/CMakeFiles/install_FindCGAL.dir
+C:/local/CGAL/build/CMakeFiles/examples.dir
+C:/local/CGAL/build/CMakeFiles/demos.dir
+C:/local/CGAL/build/CMakeFiles/INSTALL.dir
+C:/local/CGAL/build/CMakeFiles/ALL_BUILD.dir
+C:/local/CGAL/build/CMakeFiles/ZERO_CHECK.dir
+C:/local/CGAL/build/src/CMakeFiles/INSTALL.dir
+C:/local/CGAL/build/src/CGAL/CMakeFiles/ALL_CGAL_TARGETS.dir
+C:/local/CGAL/build/src/CGAL/CMakeFiles/INSTALL.dir
+C:/local/CGAL/build/src/CGAL_Core/CMakeFiles/INSTALL.dir
+C:/local/CGAL/build/src/CGAL_ImageIO/CMakeFiles/INSTALL.dir
+C:/local/CGAL/build/src/CGAL_Qt5/CMakeFiles/INSTALL.dir
