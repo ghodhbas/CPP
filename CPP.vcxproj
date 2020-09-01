@@ -163,8 +163,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Mesh.h" />
+    <ClInclude Include="src\Extra.h" />
     <ClInclude Include="src\VCG_example.h" />
     <ClInclude Include="src\MyMesh.h" />
+    <ClInclude Include="src\IO.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

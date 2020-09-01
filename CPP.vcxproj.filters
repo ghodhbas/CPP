@@ -29,5 +29,11 @@
     <ClInclude Include="src\VCG_example.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\IO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Extra.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

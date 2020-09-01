@@ -10,53 +10,26 @@
 #include <CGAL/Cartesian.h>
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/IO/Polyhedron_iostream.h>
-#include <CGAL/IO/OBJ_reader.h>
+#include <CGAL/IO/Color.h>
+#include <CGAL/property_map.h>
 
 using namespace std;
 
-
 //treat floating points exactly
-namespace PMP = CGAL::Polygon_mesh_processing;
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
-typedef CGAL::Surface_mesh<Kernel::Point_3> Mesh;
+typedef CGAL::Surface_mesh<Kernel::Point_3> SurfaceMesh;
 typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
 typedef Kernel::Point_3 Point;
+
 
 
 
 namespace MyMesh {
     string Mesh_file_format = "";
     string meshType = "";
+
     
     
-
-    void import_OFF_file(Polyhedron& m, string filename) {
-        ifstream file(string("Meshes/").append(filename));
-        if (!(file >> m)) {
-            cerr << "cannot read mesh";
-        }
-       
-    }
-
-    void import_OBJ_file(Polyhedron& m, string filename) {
-        // Load OBJ
-        std::vector<Kernel::Point_3> points_ref;
-        std::vector<std::vector<std::size_t> > faces_ref;
-
-        ifstream file(string("Meshes/").append(filename));
-        if (!file || !CGAL::read_OBJ(file, points_ref, faces_ref))
-        {
-            cerr << "cannot read mesh";
-            return;
-        }
-
-        namespace PMP = CGAL::Polygon_mesh_processing;
-        PMP::orient_polygon_soup(points_ref, faces_ref); // optional if your mesh is not correctly oriented
-        PMP::polygon_soup_to_polygon_mesh(points_ref, faces_ref, m);
-    }
-
-
-
     void print_mesh_info(Polyhedron& m) {
         if (m.is_pure_triangle()) {
             meshType = string("Triangle");
@@ -67,7 +40,6 @@ namespace MyMesh {
         else {
             meshType = string("General");
         }
-
 
         //loop over verticies
         double valenceSum = 0;
@@ -165,6 +137,46 @@ namespace MyMesh {
             << "Max Facet Degree: " << maxDegree << "\n"
             << "Number Nonplanar Facets: " << numNonpalanarFaces << "\n";
 
+    }
 
+
+
+    void load_verticies_and_color(SurfaceMesh surface, std::vector<Point> &verts,  std::vector<CGAL::Color> &cols) {
+        SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, CGAL::Color> vcolors = surface.property_map<SurfaceMesh::Vertex_index, CGAL::Color >("v:color").first;
+        bool colorExists = surface.property_map<SurfaceMesh::Vertex_index, CGAL::Color>("v:color").second;
+
+        if (!colorExists) {
+            cerr << "COLOR DOES NOT EXIST";
+            for (SurfaceMesh::Vertex_index vi : surface.vertices())
+            {
+                verts.push_back(surface.point(vi));
+            }
+        }
+        else {
+            for (SurfaceMesh::Vertex_index vi : surface.vertices())
+            {
+                cols.push_back(vcolors[vi]);
+                verts.push_back(surface.point(vi));
+            }
+        }
+
+    }
+
+
+    void color_surface(SurfaceMesh& surface, int r, int g, int b, int a) {
+        //update colors
+        SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, CGAL::Color> vcolors = surface.property_map<SurfaceMesh::Vertex_index, CGAL::Color >("v:color").first;
+        bool colorExists = surface.property_map<SurfaceMesh::Vertex_index, CGAL::Color>("v:color").second;
+
+
+        if (!colorExists) {
+            cerr << "COLOR DOES NOT EXIST";
+        }
+        else {
+            for (SurfaceMesh::Vertex_index vi : surface.vertices())
+            {
+                vcolors[vi].set_rgb(0, 255, 0, 255);
+            }
+        }
     }
 };
