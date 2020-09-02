@@ -2,33 +2,10 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/property_map.h>
-#include <CGAL/IO/write_ply_points.h>
 #include <utility>
 #include <vector>
-#include <fstream>
-#include <CGAL/Surface_mesh.h>
-#include <CGAL/Polyhedron_3.h>
-#include <CGAL/IO/OBJ_reader.h>
-#include <CGAL/IO/PLY.h>
 #include <tuple>
-
-
-namespace PMP = CGAL::Polygon_mesh_processing;
-typedef Kernel::Point_3 Point;
-typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
-typedef Kernel::Point_3 Point;
-typedef CGAL::Surface_mesh<Point> SurfaceMesh;
-typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
-typedef Kernel::Vector_3 Vector;
-typedef std::array<unsigned char, 4> MyColor;
-
-
-// Point with color 
-typedef std::tuple<Point, MyColor> PCI;
-typedef CGAL::Nth_of_tuple_property_map<0, PCI> Point_map;
-typedef CGAL::Nth_of_tuple_property_map<1, PCI> Color_map;
+#include "CGAL_includes.h"
 
 // Define how a color should be stored
 namespace CGAL {
@@ -56,9 +33,9 @@ void import_OFF_file(Polyhedron& m, SurfaceMesh& surface, std::string filename) 
     //if (!(file >> m)) {
     //    std::cerr << "cannot read mesh\n";
     //}
-
+    //
+    
     std::cout << "READING Surface Mesh File: "<< filename << std::endl;
-
     std::ifstream file2(std::string("Meshes/").append(filename));
     if (!file2 || !(file2 >> surface)) {
         std::cerr << "cannot read surface\n";
@@ -119,7 +96,7 @@ void write_PLY(std::string filename, SurfaceMesh& surface)
         << "end_header" << std::endl;
 
     //write point and colots
-    for (int i = 0 ; i<points.size(); i++)
+    for (unsigned int i = 0 ; i<points.size(); i++)
     {   
         PCI p = points[i];
         f << std::get<0>(p).x() << " " << std::get<0>(p).y() << " " << std::get<0>(p).z() << " ";
@@ -168,7 +145,7 @@ void write_OFF(std::string filename, SurfaceMesh& surface)
         << points.size() << " " << (unsigned int)surface.number_of_faces() << " " << (unsigned int)surface.number_of_edges() << std::endl;
 
     //write point and colots
-    for (int i = 0; i < points.size(); i++)
+    for (unsigned int i = 0; i < points.size(); i++)
     {
         PCI p = points[i];
         f << std::get<0>(p).x() << " " << std::get<0>(p).y() << " " << std::get<0>(p).z() << " ";

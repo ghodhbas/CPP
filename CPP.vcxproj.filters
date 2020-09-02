@@ -35,5 +35,8 @@
     <ClInclude Include="src\Extra.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\CGAL_includes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

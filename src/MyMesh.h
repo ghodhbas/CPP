@@ -2,33 +2,14 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <CGAL/Polyhedron_3.h>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Surface_mesh.h>
-#include <CGAL/polygon_mesh_processing/measure.h>
-#include <CGAL/Surface_mesh_approximation/approximate_triangle_mesh.h>
-#include <CGAL/Cartesian.h>
-#include <CGAL/Polyhedron_3.h>
-#include <CGAL/IO/Polyhedron_iostream.h>
-#include <CGAL/IO/Color.h>
-#include <CGAL/property_map.h>
-
 using namespace std;
-
-//treat floating points exactly
-typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
-typedef CGAL::Surface_mesh<Kernel::Point_3> SurfaceMesh;
-typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
-typedef Kernel::Point_3 Point;
-
-
+#include "CGAL_includes.h"
 
 
 namespace MyMesh {
     string Mesh_file_format = "";
     string meshType = "";
 
-    
     
     void print_mesh_info(Polyhedron& m) {
         if (m.is_pure_triangle()) {

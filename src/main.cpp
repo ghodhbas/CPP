@@ -1,4 +1,3 @@
-#include <iostream>
 #include "MyMesh.h"
 #include "IO.h"
 
@@ -17,8 +16,6 @@ int main(int argc, char* argv[])
     //std::vector<Point> verts;
     //std::vector<CGAL::Color> cols;
     //MyMesh::load_verticies_and_color(surface, verts, cols);
-
-
 
     MyMesh::color_surface(surface, 0, 255, 0, 255);
 
