@@ -6,6 +6,7 @@
 #include <vector>
 #include <tuple>
 #include "CGAL_includes.h"
+using namespace std;
 
 // Define how a color should be stored
 namespace CGAL {
@@ -28,12 +29,12 @@ namespace CGAL {
 
 
 void import_OFF_file(Polyhedron& m, SurfaceMesh& surface, std::string filename) {
-    //std::cout << "READING TO POLYHEDRON" << std::endl;
-    //std::ifstream file(std::string("Meshes/").append(filename));
-    //if (!(file >> m)) {
-    //    std::cerr << "cannot read mesh\n";
-    //}
-    //
+    std::cout << "READING TO POLYHEDRON" << std::endl;
+    std::ifstream file(std::string("Meshes/").append(filename));
+    if (!(file >> m)) {
+        std::cerr << "cannot read mesh\n";
+    }
+    
     
     std::cout << "READING Surface Mesh File: "<< filename << std::endl;
     std::ifstream file2(std::string("Meshes/").append(filename));
@@ -118,7 +119,7 @@ void write_PLY(std::string filename, SurfaceMesh& surface)
         f << nb_vertex_per_face<<" "<< line << endl;
         //f << endl;
     }
-    f.close();
+    //f.close();
 
 }
 

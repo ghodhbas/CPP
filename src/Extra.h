@@ -158,3 +158,95 @@
 //    y_mid = (y_min + y_max) / 2;
 //    z_mid = (z_min + z_max) / 2;
 //}
+
+
+
+
+//SEGMENTING MESH SUING CGAL
+/// run through each mesh in INPUT_DIR (getting SDF values only once)
+//	// 		run through k number of clusters
+//	//			run through smoothing lambdas
+//	//				segment and write .OFF file
+//double tot_toc = 0;
+//int curr_ix = 0;
+//int n_pcls = meshes_filenames.size();
+//for (std::vector<std::string>::iterator it = meshes_filenames.begin(); it != meshes_filenames.end(); ++it) {
+//	// variables to measure time elapsed
+//	curr_ix++;
+//	std::clock_t tic = std::clock();
+//
+//	// get filepath to write to
+//	std::string mesh_filename = *it;
+//	std::string mesh_filepath = INPUT_DIR + mesh_filename;
+//
+//	// get mesh from .OFF file
+//	// if there is a problem continue the loop for next mesh
+//	Polyhedron mesh;
+//	if (!get_mesh_from_off_file(mesh_filepath, mesh))
+//		continue;
+//
+//	// assign id field for each face
+//	if (VERBOSE) std::cout << "Assigning a different ID to each face...";
+//	std::size_t facet_id = 0;
+//	for (Polyhedron::Facet_iterator facet_it = mesh.facets_begin(); facet_it != mesh.facets_end(); ++facet_it, ++facet_id)
+//		facet_it->id() = facet_id;
+//	if (VERBOSE) std::cout << "OK" << std::endl;
+//
+//	// create a property-map for SDF values
+//	// to access SDF values with constant-complexity
+//	if (VERBOSE) std::cout << "Creating an index for SDF values to access them with constant-complexity...";
+//	std::vector<double> sdf_values(mesh.size_of_facets());
+//	Facet_with_id_pmap<double> sdf_property_map(sdf_values);
+//	CGAL::sdf_values(mesh, sdf_property_map);
+//	if (VERBOSE) std::cout << "OK" << std::endl;
+//
+//	// create a property-map for segment IDs
+//	// so we can access a face's segment ID with constant-complexity
+//	if (VERBOSE) std::cout << "Creating an index for face segment IDS to access them with constant-complexity...";
+//	std::vector<std::size_t> segment_ids(mesh.size_of_facets());
+//	Facet_with_id_pmap<std::size_t> segment_property_map(segment_ids);
+//	if (VERBOSE) std::cout << "OK" << std::endl;
+//	std::cout << std::endl;
+//
+//	// run through ks and lambdas, segment and write to .OFF file
+//	double tot_toc_per_mesh = 0;
+//	int curr_ix_mesh = 0;
+//	int n_ks_tries = 0;
+//	for (int k = K_START; k <= K_END; k += K_STEP)
+//		n_ks_tries++;
+//	int n_lambda_tries = 0;
+//	for (float lambda = LAMBDA_START; lambda <= LAMBDA_END; lambda += LAMBDA_STEP)
+//		n_lambda_tries++;
+//	for (int k = K_START; k <= K_END; k += K_STEP) {
+//		curr_ix_mesh++;
+//		int curr_ix_lambda = 0;
+//		double tot_toc_per_lambda = 0;
+//		for (float lambda = LAMBDA_START; lambda <= LAMBDA_END; lambda += LAMBDA_STEP) {
+//			curr_ix_lambda++;
+//			// segment the mesh with params k and lambda
+//			if (VERBOSE) std::cout << "Segmenting...";
+//			int n_segms = CGAL::segmentation_from_sdf_values(mesh, sdf_property_map, segment_property_map, k, lambda);
+//			if (VERBOSE) std::cout << "OK" << std::endl << "Number of segments: " << n_segms << std::endl;
+//
+//			// write mesh to .PLY or .OFF file
+//			if (INPUT_FILE_EXT.compare("ply") == 0)
+//				write_mesh_to_ply_file(OUTPUT_DIR + mesh_filename, mesh, segment_property_map, n_segms, k, lambda);
+//			else
+//				write_mesh_to_off_file(OUTPUT_DIR + mesh_filename, mesh, segment_property_map, n_segms, k, lambda);
+//
+//
+//			if (VERBOSE) std::cout << std::endl;
+//			tot_toc_per_lambda += double(std::clock() - tic) / CLOCKS_PER_SEC;
+//			std::cout << std::endl;
+//			DisplayEstimatedTimeOfLoop(tot_toc_per_lambda, curr_ix_lambda, n_lambda_tries, "Loop for each lambda per mesh ");
+//		}
+//		tot_toc_per_mesh += double(std::clock() - tic) / CLOCKS_PER_SEC;
+//		std::cout << std::endl;
+//		DisplayEstimatedTimeOfLoop(tot_toc_per_mesh, curr_ix_mesh, n_ks_tries, "Loop for each K per mesh ");
+//		std::cout << std::endl;
+//	}
+//	tot_toc += double(std::clock() - tic) / CLOCKS_PER_SEC;
+//	std::cout << std::endl;
+//	DisplayEstimatedTimeOfLoop(tot_toc, curr_ix, n_pcls, "Loop for all meshes ");
+//	std::cout << std::endl;
+//}
