@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 #include "CGAL_includes.h"
 #include "IO.h"
 
@@ -10,6 +11,7 @@
 namespace MyMesh {
     std::string Mesh_file_format = "";
     std::string meshType = "";
+    std::vector<SurfaceMesh*> segments_vec;
 
     
     void print_mesh_info(Polyhedron& m) {
@@ -190,20 +192,24 @@ namespace MyMesh {
         {
             if (id > 0)
                 segment_mesh.set_selected_faces(id, segment_property_map);
-            std::cout << "Segment " << id << "'s area is : " << CGAL::Polygon_mesh_processing::area(segment_mesh) << std::endl;
-            SurfaceMesh out;
+            //std::cout << "Segment " << id << "'s area is : " << CGAL::Polygon_mesh_processing::area(segment_mesh) << std::endl;
+            SurfaceMesh* out = new SurfaceMesh();
 
             //doesn't do colors -----------------------
-            CGAL::copy_face_graph(segment_mesh, out);
+            CGAL::copy_face_graph(segment_mesh, *out);
             // create a color property map
             SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, CGAL::Color > c;
             bool created;
-            boost::tie(c, created) = out.add_property_map<vertex_descriptor, CGAL::Color>("v:color", CGAL::Color::Color());
+            boost::tie(c, created) = out->add_property_map<vertex_descriptor, CGAL::Color>("v:color", CGAL::Color::Color());
             assert(created);
-            color_surface(out, 0, 250, 0, 250);
+            color_surface(*out, 0, 250, 0, 250);
+
+
+            //
+            segments_vec.push_back(out);
 
             std::string out_s = "out/Segment_" + std::to_string(id) + ".ply";
-            write_PLY(out_s, out);
+            write_PLY(out_s, *out);
         }
     }
 

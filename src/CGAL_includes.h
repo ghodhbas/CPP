@@ -1,4 +1,5 @@
 #pragma once
+#include <CGAL/config.h>
 
 //Setting
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
