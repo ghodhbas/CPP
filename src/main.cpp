@@ -2,7 +2,7 @@
 #include "IO.h"
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
-
+#include "VoxelGridOcclusionEstimationT.h"
 
 int main(int argc, char* argv[])
 {
@@ -14,9 +14,8 @@ int main(int argc, char* argv[])
 
     MyMesh::print_mesh_info(m);
 
-    write_PLY(argv[2], surface);
+    //write_PLY(argv[2], surface);
     //write_OFF(argv[2], surface);
-
 
     //load veticies and colkor dtaa to vectors
     //std::vector<Point> verts;
@@ -25,47 +24,23 @@ int main(int argc, char* argv[])
 
     //MyMesh::color_surface(surface, 0, 255, 0, 255);
     //MyMesh::segment_mesh(surface);
-
     //std::cout << "Number of Segments: " << MyMesh::segments_vec.size() << std::endl;
+
     /////////////////////----------------------------------------------------------------------------------------
+   
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudCopy = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
-
-    //pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    //
-    //for (unsigned int i = 0; i < 10; ++i)
-    //{
-    //    pcl::PointXYZ p; p.x = i; p.y = i; p.z = i;
-    //    cloud->points.push_back(p);
-    //}
-    //
-    //pcl::PointXYZ p; p.x = 5.1; p.y = 5.1; p.z = 5.1;
-    //cloud->points.push_back(p);
-    //
-    //std::cout << "Number of points before: " << cloud->points.size() << std::endl;
-    //
-    //pcl::VoxelGrid<pcl::PointXYZ> voxel_grid;
-    //voxel_grid.setInputCloud(cloud);
-    //voxel_grid.setLeafSize(0.5, 0.5, 0.5);
-    //voxel_grid.filter(*cloud);
-    //
-    //std::cout << "Number of points after: " << cloud->points.size() << std::endl;
-
-    //create PCL point cloud from surface mesh
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-    //convert to pointcloud
-    pcl::PointCloud< pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud< pcl::PointXYZ>());
-    pcl::Filter<pcl::PointXYZ>::PointCloud::Ptr  ptr_cloud;
-
-
+    pcl::PointCloud<pcl::PointXYZ>::Ptr occlusionFreeCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
+    
     //create point cloud
     cloud->width = surface.number_of_vertices();
     cloud->height = 1;
     cloud->is_dense = false;
     cloud->points.resize(surface.number_of_vertices());
     int i = 0;
-    ///
+
     /// use IndicesPtr indices_ = shared_ptr<Indices> = shared_ptr<std::vector<index_t>>;
     /// populate it
     /// assign it via   sor.setindecies.
@@ -75,19 +50,47 @@ int main(int argc, char* argv[])
         i++;
     }
 
-    std::cerr << "PointCloud before filtering: " << cloud->width * cloud->height
-        << " data points (" << pcl::getFieldsList(*cloud) << ")." << std::endl;
+    cloudCopy->points = cloud->points;
+    float voxelRes, OriginalVoxelsSize, viewEntropy;
+    double id;
+    pcl::VoxelGridOcclusionEstimationT voxelFilterOriginal;
+    Eigen::Vector3i  max_b1, min_b1;
 
+    double maxAccuracyError, minAccuracyError;
+    bool AccuracyMaxSet;
+    std::string frame_id;
+    voxelRes = 0.1f;
+    OriginalVoxelsSize = 0.0;
+    id = 0.0;
+    viewEntropy = 0.0;
+    voxelFilterOriginal.setInputCloud(cloud);
+    voxelFilterOriginal.setLeafSize(voxelRes, voxelRes, voxelRes);
+    voxelFilterOriginal.initializeVoxelGrid();
+    min_b1 = voxelFilterOriginal.getMinBoxCoordinates();
+    max_b1 = voxelFilterOriginal.getMaxBoxCoordinates();
+    std::cout << "min_b1 :" << min_b1<< "\n";
+    std::cout << "max_b1 :" << max_b1 << "\n";
 
+    //calculate voxel size
+    for (int kk = min_b1.z(); kk <= max_b1.z(); ++kk)
+    {
+        for (int jj = min_b1.y(); jj <= max_b1.y(); ++jj)
+        {
+            for (int ii = min_b1.x(); ii <= max_b1.x(); ++ii)
+            {
+                Eigen::Vector3i ijk1(ii, jj, kk);
+                int index1 = voxelFilterOriginal.getCentroidIndexAt(ijk1);
+                if (index1 != -1)
+                {
+                    OriginalVoxelsSize++;
+                }
 
-    pcl::VoxelGrid<pcl::PointXYZ>* sor = new pcl::VoxelGrid<pcl::PointXYZ>();
-    // Create the filtering object
-    sor->setInputCloud(cloud);
-    sor->setLeafSize(0.1f, 0.1f, 0.1f);
-    sor->filter(*filtered_cloud);
-    //
-    std::cerr << "PointCloud after filtering: " << filtered_cloud->width * filtered_cloud->height
-        << " data points (" << pcl::getFieldsList(*filtered_cloud) << ")." << std::endl;
+            }
+        }
+    }
 
+    cout << "Voxel Grid Size: "<< OriginalVoxelsSize << endl;
+    std::cerr << "PointCloud after filtering: " << voxelFilterOriginal.getFilteredPointCloud().width * voxelFilterOriginal.getFilteredPointCloud().height
+        << " data points (" << pcl::getFieldsList(voxelFilterOriginal.getFilteredPointCloud()) << ")." << std::endl;
     return EXIT_SUCCESS;
 }
