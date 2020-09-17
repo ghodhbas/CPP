@@ -171,11 +171,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Frustum.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\UAV.cpp" />
     <ClCompile Include="src\VoxelGridOcclusionEstimationT.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Frustum.h" />
     <ClInclude Include="include\Mesh.h" />
     <ClInclude Include="src\CGAL_includes.h" />
     <ClInclude Include="src\Extra.h" />
