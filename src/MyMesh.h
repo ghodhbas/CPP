@@ -5,7 +5,7 @@
 #include <vector>
 #include "CGAL_includes.h"
 #include "IO.h"
-
+#include <pcl/filters/voxel_grid.h>
 
 
 namespace MyMesh {
@@ -214,7 +214,23 @@ namespace MyMesh {
     }
 
 
-
+    void convert_to_pointcloud(SurfaceMesh& surface, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud ) {
+        
+        //create point cloud
+        cloud->width = surface.number_of_vertices();
+        cloud->height = 1;
+        cloud->is_dense = false;
+        cloud->points.resize(surface.number_of_vertices());
+        int i = 0;
+        /// use IndicesPtr indices_ = shared_ptr<Indices> = shared_ptr<std::vector<index_t>>;
+        /// populate it
+        /// assign it via   sor.setindecies.
+        for (SurfaceMesh::Vertex_index vi : surface.vertices())
+        {
+            cloud->push_back(pcl::PointXYZ(surface.point(vi).x(), surface.point(vi).y(), surface.point(vi).z()));
+            i++;
+        }
+    }
 
 }
 

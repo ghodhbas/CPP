@@ -1,4 +1,5 @@
 #include "Occlusion_Culling.h"
+#include <iostream>
 
 
 OcclusionCulling::OcclusionCulling( std::string modelName) :
@@ -53,8 +54,8 @@ OcclusionCulling::OcclusionCulling( std::string modelName) :
     //voxelgrid.filter(*filtered_cloud);
 
     fc.setInputCloud(cloud);
-    fc.setVerticalFOV(45);
-    fc.setHorizontalFOV(58);
+    fc.setVerticalFOV(60);
+    fc.setHorizontalFOV(60);
     fc.setNearPlaneDistance(0.7);
     fc.setFarPlaneDistance(6.0);
 
@@ -76,7 +77,7 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     cloud->points = cloudPtr->points;
     cloudCopy->points = cloud->points;
 
-    voxelRes = 0.5f;
+    voxelRes = 0.1f;
     frame_id = "world";
     OriginalVoxelsSize = 0.0;
     id = 0.0;
@@ -86,6 +87,9 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     voxelFilterOriginal.initializeVoxelGrid();
     min_b1 = voxelFilterOriginal.getMinBoxCoordinates();
     max_b1 = voxelFilterOriginal.getMaxBoxCoordinates();
+
+    std::cout << "min_b1 :" << min_b1 << "\n";
+    std::cout << "max_b1 :" << max_b1 << "\n";
     for (int kk = min_b1.z(); kk <= max_b1.z(); ++kk)
     {
         for (int jj = min_b1.y(); jj <= max_b1.y(); ++jj)
@@ -96,12 +100,15 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
                 int index1 = voxelFilterOriginal.getCentroidIndexAt(ijk1);
                 if (index1 != -1)
                 {
+                    //std::cout << "Cooord: " << voxelFilterOriginal.getCentroidCoordinate(ijk1) << std::endl;
                     OriginalVoxelsSize++;
                 }
 
             }
         }
     }
+
+    std::cout << "Voxel Grid Size: " << OriginalVoxelsSize << std::endl;
 
     //pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
     //voxelgrid.setInputCloud(cloud);
@@ -110,10 +117,10 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     //
 
     fc.setInputCloud(cloud);
-    fc.setVerticalFOV(45);
-    fc.setHorizontalFOV(58);
-    fc.setNearPlaneDistance(0.7);
-    fc.setFarPlaneDistance(6.0);
+    fc.setVerticalFOV(60);
+    fc.setHorizontalFOV(60);
+    fc.setNearPlaneDistance(0.2f);
+    fc.setFarPlaneDistance(2.0f);
 
     AccuracyMaxSet = false;
 }
@@ -166,10 +173,10 @@ OcclusionCulling::OcclusionCulling() :
     //voxelgrid.filter(*filtered_cloud);
 
     fc.setInputCloud(cloud);
-    fc.setVerticalFOV(45);
-    fc.setHorizontalFOV(58);
-    fc.setNearPlaneDistance(0.7);
-    fc.setFarPlaneDistance(6.0);
+    fc.setVerticalFOV(30);
+    fc.setHorizontalFOV(30);
+    fc.setNearPlaneDistance(0.2);
+    fc.setFarPlaneDistance(2.0);
 
     AccuracyMaxSet = false;
 }
@@ -203,7 +210,7 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
     // 1 *****Frustum Culling*******
     pcl::PointCloud <pcl::PointXYZ>::Ptr output(new pcl::PointCloud <pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr occlusionFreeCloud_local(new pcl::PointCloud<pcl::PointXYZ>);
-    Eigen::Matrix4f camera_pose = camera.get_pos();
+    Eigen::Matrix4f camera_pose = camera.get_pose();
 
     fc.setCameraPose(camera_pose);
     fc.filter(*output);
@@ -249,7 +256,7 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
         {
             out_ray.clear();
             ret = voxelFilter.occlusionEstimation(state, out_ray, ijk);
-                                    std::cout<<"State is:"<<state<<"\n";
+                                   //std::cout<<"State is:"<<state<<"\n";
             //if state is not occupied
             if (state != 1)
             {
@@ -285,6 +292,7 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
 
                     occlusionFreeCloud_local->points.push_back(ptest);
                     occlusionFreeCloud->points.push_back(ptest);
+
 
                 }
             }
@@ -370,6 +378,10 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
 //
 //    return coverage_percentage;
 //}
+
+
+
+
 //double OcclusionCulling::calcAvgAccuracy(pcl::PointCloud<pcl::PointXYZ> pointCloud)
 //{
 //    double avgAccuracy;
@@ -384,6 +396,11 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
 //    avgAccuracy = errorSum / pointCloud.size();
 //    return avgAccuracy;
 //}
+
+
+
+
+
 //double OcclusionCulling::calcAvgAccuracy(pcl::PointCloud<pcl::PointXYZ> pointCloud, geometry_msgs::Pose cameraPose)
 //{
 //
@@ -402,6 +419,12 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
 //    return avgAccuracy;
 //}
 //
+
+
+
+
+
+
 //void OcclusionCulling::SSMaxMinAccuracy(std::vector<geometry_msgs::PoseArray> sensorsPoses)
 //{
 //    std::cout << "\nCalculating MinMax"; fflush(stdout);
@@ -447,6 +470,13 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
 //    AccuracyMaxSet = true;
 //}
 //
+
+
+
+
+
+
+
 //void OcclusionCulling::transformPointMatVec(tf::Vector3 translation, tf::Matrix3x3 rotation, geometry_msgs::Point32 in, geometry_msgs::Point32& out)
 //{
 //
@@ -459,6 +489,8 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
 //    out.z = z;
 //}
 //
+
+
 //
 ////translate the pcd viewport (0,0,0) to the camera viewport (viewpoints)
 ////All pcd files have viewports set to (0,0,0) ... occlusion culling extract the point cloud but doesn't change the point cloud depth
@@ -547,6 +579,11 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
 //
 //
 //
+
+
+
+
+
 //void OcclusionCulling::visualizeFOV(geometry_msgs::Pose location)
 //{
 //
@@ -622,6 +659,9 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
 //    marker_array.markers.push_back(linesList4);
 //    fov_pub.publish(marker_array);
 //}
+
+
+
 //visualization_msgs::Marker OcclusionCulling::drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color[])
 //{
 //    visualization_msgs::Marker linksMarkerMsg;

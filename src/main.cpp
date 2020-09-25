@@ -1,8 +1,12 @@
 #include "MyMesh.h"
 #include "IO.h"
 #include <pcl/point_types.h>
-#include <pcl/filters/voxel_grid.h>
-#include "VoxelGridOcclusionEstimationT.h"
+#include "Occlusion_Culling.h"
+#include <fstream>
+#include <iostream>
+#include <CGAL/Scale_space_surface_reconstruction_3.h>
+#include <cmath> 
+
 
 int main(int argc, char* argv[])
 {
@@ -12,10 +16,7 @@ int main(int argc, char* argv[])
     //import_OBJ_file(m, "plane.obj");
     if (m.is_empty() && surface.is_empty()) return 1;
 
-    MyMesh::print_mesh_info(m);
-
-    //write_PLY(argv[2], surface);
-    //write_OFF(argv[2], surface);
+    //MyMesh::print_mesh_info(m);
 
     //load veticies and colkor dtaa to vectors
     //std::vector<Point> verts;
@@ -28,69 +29,25 @@ int main(int argc, char* argv[])
 
     /////////////////////----------------------------------------------------------------------------------------
    
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudCopy = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr occlusionFreeCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>); 
     
-    //create point cloud
-    cloud->width = surface.number_of_vertices();
-    cloud->height = 1;
-    cloud->is_dense = false;
-    cloud->points.resize(surface.number_of_vertices());
-    int i = 0;
+    MyMesh::convert_to_pointcloud(surface, cloud);
 
-    /// use IndicesPtr indices_ = shared_ptr<Indices> = shared_ptr<std::vector<index_t>>;
-    /// populate it
-    /// assign it via   sor.setindecies.
-    for (SurfaceMesh::Vertex_index vi : surface.vertices())
-    {
-        cloud->push_back(pcl::PointXYZ(surface.point(vi).x(), surface.point(vi).y(), surface.point(vi).z()));
-        i++;
-    }
-
-    cloudCopy->points = cloud->points;
-    float voxelRes, OriginalVoxelsSize, viewEntropy;
-    double id;
-    pcl::VoxelGridOcclusionEstimationT voxelFilterOriginal;
-    Eigen::Vector3i  max_b1, min_b1;
-
-    double maxAccuracyError, minAccuracyError;
-    bool AccuracyMaxSet;
-    std::string frame_id;
-    voxelRes = 0.1f;
-    OriginalVoxelsSize = 0.0;
-    id = 0.0;
-    viewEntropy = 0.0;
-    voxelFilterOriginal.setInputCloud(cloud);
-    voxelFilterOriginal.setLeafSize(voxelRes, voxelRes, voxelRes);
-    voxelFilterOriginal.initializeVoxelGrid();
-    min_b1 = voxelFilterOriginal.getMinBoxCoordinates();
-    max_b1 = voxelFilterOriginal.getMaxBoxCoordinates();
-    std::cout << "min_b1 :" << min_b1<< "\n";
-    std::cout << "max_b1 :" << max_b1 << "\n";
-
-    //calculate voxel size
-    for (int kk = min_b1.z(); kk <= max_b1.z(); ++kk)
-    {
-        for (int jj = min_b1.y(); jj <= max_b1.y(); ++jj)
-        {
-            for (int ii = min_b1.x(); ii <= max_b1.x(); ++ii)
-            {
-                Eigen::Vector3i ijk1(ii, jj, kk);
-                int index1 = voxelFilterOriginal.getCentroidIndexAt(ijk1);
-                if (index1 != -1)
-                {
-                    OriginalVoxelsSize++;
-                }
-
+    OcclusionCulling* OC = new OcclusionCulling(cloud);
+    UAV* drone = new UAV();
+   
+    pcl::PointCloud<pcl::PointXYZ> visible_s = OC->extractVisibleSurface(*drone);
+    SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, CGAL::Color> vcolors = surface.property_map<SurfaceMesh::Vertex_index, CGAL::Color >("v:color").first;
+    for (int i = 0; i < visible_s.points.size(); i++) {
+        pcl::PointXYZ p = visible_s.points[i];
+        for (SurfaceMesh::Vertex_index vi : surface.vertices())
+        {   
+            if ( std::abs( p.x - (float)surface.point(vi).x())<= 0.00001f   && std::abs(p.y - (float)surface.point(vi).y()) <= 0.00001f && std::abs(p.z - (float)surface.point(vi).z()) <= 0.00001f) {
+                vcolors[vi].set_rgb(255, 0, 0, 255);
             }
         }
     }
+    write_PLY(argv[2], surface);
 
-    cout << "Voxel Grid Size: "<< OriginalVoxelsSize << endl;
-    std::cerr << "PointCloud after filtering: " << voxelFilterOriginal.getFilteredPointCloud().width * voxelFilterOriginal.getFilteredPointCloud().height
-        << " data points (" << pcl::getFieldsList(voxelFilterOriginal.getFilteredPointCloud()) << ")." << std::endl;
-    return EXIT_SUCCESS;
+   return EXIT_SUCCESS;
 }
