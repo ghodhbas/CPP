@@ -164,6 +164,19 @@ namespace MyMesh {
         }
     }
 
+    void color_visible_surface(pcl::PointCloud<pcl::PointXYZ> visible_s, SurfaceMesh& surface) {
+        SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, CGAL::Color> vcolors = surface.property_map<SurfaceMesh::Vertex_index, CGAL::Color >("v:color").first;
+        for (int i = 0; i < visible_s.points.size(); i++) {
+            pcl::PointXYZ p = visible_s.points[i];
+            for (SurfaceMesh::Vertex_index vi : surface.vertices())
+            {
+                if (std::abs(p.x - (float)surface.point(vi).x()) <= 0.00001f && std::abs(p.y - (float)surface.point(vi).y()) <= 0.00001f && std::abs(p.z - (float)surface.point(vi).z()) <= 0.00001f) {
+                    vcolors[vi].set_rgb(255, 0, 0, 255);
+                }
+            }
+        }
+    }
+
 
 
     void segment_mesh(SurfaceMesh surface) {
@@ -177,7 +190,7 @@ namespace MyMesh {
         // create a property-map for segment-ids
         typedef SurfaceMesh::Property_map<face_descriptor, std::size_t> Facet_int_map;
         Facet_int_map segment_property_map = surface.add_property_map<face_descriptor, std::size_t>("f:sid").first;;
-        const std::size_t number_of_clusters = 3;       // use 4 clusters in soft clustering
+        const std::size_t number_of_clusters = 4;       // use 4 clusters in soft clustering
         const double smoothing_lambda = 0.4;  // importance of surface features, suggested to be in-between [0,1]
         // Note that we can use the same SDF values (sdf_property_map) over and over again for segmentation.
         // This feature is relevant for segmenting the mesh several times with different parameters.

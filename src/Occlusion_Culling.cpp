@@ -16,10 +16,9 @@ OcclusionCulling::OcclusionCulling( std::string modelName) :
     occlusionFreeCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
     FrustumCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
     // Load model ----------------------------TODO
-    //pcl::io::loadPCDFile<pcl::PointXYZ>(model, *cloud);
     //
     cloudCopy->points = cloud->points;
-    voxelRes = 0.5f;
+    voxelRes = 1.f;
     OriginalVoxelsSize = 0.0;
     id = 0.0;
     viewEntropy = 0.0;
@@ -65,9 +64,6 @@ OcclusionCulling::OcclusionCulling( std::string modelName) :
 OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPtr):
     fc(true)
 {
-
-    //fov_pub = nh.advertise<visualization_msgs::MarkerArray>("fov", 100);
-
     cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
     cloudCopy = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
     filtered_cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
@@ -77,7 +73,7 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     cloud->points = cloudPtr->points;
     cloudCopy->points = cloud->points;
 
-    voxelRes = 0.1f;
+    voxelRes = 1.f;
     frame_id = "world";
     OriginalVoxelsSize = 0.0;
     id = 0.0;
@@ -88,8 +84,8 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     min_b1 = voxelFilterOriginal.getMinBoxCoordinates();
     max_b1 = voxelFilterOriginal.getMaxBoxCoordinates();
 
-    std::cout << "min_b1 :" << min_b1 << "\n";
-    std::cout << "max_b1 :" << max_b1 << "\n";
+    //std::cout << "min_b1 :" << min_b1 << "\n";
+    //std::cout << "max_b1 :" << max_b1 << "\n";
     for (int kk = min_b1.z(); kk <= max_b1.z(); ++kk)
     {
         for (int jj = min_b1.y(); jj <= max_b1.y(); ++jj)
@@ -109,18 +105,11 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     }
 
     std::cout << "Voxel Grid Size: " << OriginalVoxelsSize << std::endl;
-
-    //pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
-    //voxelgrid.setInputCloud(cloud);
-    //voxelgrid.setLeafSize(voxelRes, voxelRes, voxelRes);
-    //voxelgrid.filter(*filtered_cloud);
-    //
-
     fc.setInputCloud(cloud);
-    fc.setVerticalFOV(60);
-    fc.setHorizontalFOV(60);
+    fc.setVerticalFOV(180);
+    fc.setHorizontalFOV(180);
     fc.setNearPlaneDistance(0.2f);
-    fc.setFarPlaneDistance(2.0f);
+    fc.setFarPlaneDistance(4.f);
 
     AccuracyMaxSet = false;
 }

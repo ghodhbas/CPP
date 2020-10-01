@@ -51,6 +51,7 @@
       */
     class VoxelGridOcclusionEstimationT : public VoxelGrid<pcl::PointXYZ>
     {
+        //changed from protected to easily Access them in path planner for now
     protected:
         using VoxelGrid<pcl::PointXYZ>::min_b_;
         using VoxelGrid<pcl::PointXYZ>::max_b_;

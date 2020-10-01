@@ -11,10 +11,11 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
         UAV() {
-            pose << -1.f, 0.f, 0.f, 3.2f,
-                0.f, 0.f, 1.f, 0.f,
-                0.f, 1.f, 0.f, 5.f,
-                0.f, 0.f, 0.f, 1.f;
+            pose <<     1.f, 0.f, 0.f, 0.f,
+                        0.f, 1.f, 0.f, 12.f,
+                        0.f, 0.f, 1.f, 0.f,
+                        0.f, 0.f, 0.f, 1.f;
+            //x kenet -9
             // view vector for the camera  - first column of the rotation matrix
            // up vector for the camera    - second column of the rotation matix
            // right vector for the camera - third column of the rotation matrix

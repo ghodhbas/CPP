@@ -4,50 +4,88 @@
 #include "Occlusion_Culling.h"
 #include <fstream>
 #include <iostream>
-#include <CGAL/Scale_space_surface_reconstruction_3.h>
 #include <cmath> 
+#include <ctime>
+#include "PathPlanner.h"
+#include <CGAL/Side_of_triangle_mesh.h>
 
+double max_coordinate(const Polyhedron& poly)
+{
+    double max_coord = -std::numeric_limits<double>::infinity();
+    for (Polyhedron::Vertex_handle v : vertices(poly))
+    {
+        Point p = v->point();
+        max_coord = (std::max)(max_coord, p.x());
+        max_coord = (std::max)(max_coord, p.y());
+        max_coord = (std::max)(max_coord, p.z());
+    }
+    return max_coord;
+}
 
 int main(int argc, char* argv[])
 {
-    Polyhedron m;
+    Polyhedron poly;
     SurfaceMesh surface;
-    import_OFF_file(m, surface, argv[1]);
+    import_OFF_file(poly, surface, argv[1]);
     //import_OBJ_file(m, "plane.obj");
-    if (m.is_empty() && surface.is_empty()) return 1;
-
-    //MyMesh::print_mesh_info(m);
-
-    //load veticies and colkor dtaa to vectors
-    //std::vector<Point> verts;
-    //std::vector<CGAL::Color> cols;
-    //MyMesh::load_verticies_and_color(surface, verts, cols);
-
-    //MyMesh::color_surface(surface, 0, 255, 0, 255);
+    if (poly.is_empty() && surface.is_empty()) return 1;
+    
     //MyMesh::segment_mesh(surface);
-    //std::cout << "Number of Segments: " << MyMesh::segments_vec.size() << std::endl;
-
+    //return 1;
+    //MyMesh::print_mesh_info(m);
     /////////////////////----------------------------------------------------------------------------------------
    
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>); 
+
     
+
     MyMesh::convert_to_pointcloud(surface, cloud);
 
-    OcclusionCulling* OC = new OcclusionCulling(cloud);
-    UAV* drone = new UAV();
-   
-    pcl::PointCloud<pcl::PointXYZ> visible_s = OC->extractVisibleSurface(*drone);
-    SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, CGAL::Color> vcolors = surface.property_map<SurfaceMesh::Vertex_index, CGAL::Color >("v:color").first;
-    for (int i = 0; i < visible_s.points.size(); i++) {
-        pcl::PointXYZ p = visible_s.points[i];
-        for (SurfaceMesh::Vertex_index vi : surface.vertices())
-        {   
-            if ( std::abs( p.x - (float)surface.point(vi).x())<= 0.00001f   && std::abs(p.y - (float)surface.point(vi).y()) <= 0.00001f && std::abs(p.z - (float)surface.point(vi).z()) <= 0.00001f) {
-                vcolors[vi].set_rgb(255, 0, 0, 255);
-            }
+    PathPlanner pp(cloud);
+    std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> viewpoints =pp.extract_surfaces_routine();
+    std::cout << "map size: " << viewpoints.size() << std::endl;
+    
+    
+    std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> final_viewpoints;
+    std::vector< Kernel::Point_3> viewpoints_cloud;
+
+    //remove viewpoints that are inside of the mesh
+    CGAL::Side_of_triangle_mesh<Polyhedron, Kernel> inside(poly);
+    double size = max_coordinate(poly);
+    int nb_inside = 0;
+    int nb_boundary = 0;
+    for (std::size_t i = 0; i < viewpoints.size(); ++i)
+    {     
+        Eigen::Vector3f point_eigen = viewpoints[i].first.block(0, 3, 3, 1);
+        Kernel::Point_3 point = Kernel::Point_3(point_eigen.x(), point_eigen.y(), point_eigen.z()) ;
+        CGAL::Bounded_side res = inside(point);
+        if (res == CGAL::ON_BOUNDED_SIDE) {
+            ++nb_inside;
+            
+        }else if (res == CGAL::ON_BOUNDARY) { ++nb_boundary; }
+        else {
+            final_viewpoints.push_back(viewpoints[i]);
+            viewpoints_cloud.push_back(point);
         }
     }
-    write_PLY(argv[2], surface);
 
+    std::cerr << "  " << nb_inside << " points inside " << std::endl;
+    std::cerr << "  " << nb_boundary << " points on boundary " << std::endl;
+    std::cerr << "  " << viewpoints.size() - nb_inside - nb_boundary << " points outside " << std::endl;
+
+
+    std::cerr << " TEST CLOUD SIZE " << viewpoints_cloud.size() << std::endl;
+    write_PLY(argv[2], viewpoints_cloud);
+
+
+   ///color visible surface
+   // MyMesh::color_visible_surface(visible_s, surface);
+   // write_PLY(argv[2], surface);
+
+
+
+   
    return EXIT_SUCCESS;
 }
+
+
