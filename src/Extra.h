@@ -199,3 +199,146 @@
 //<< " data points (" << pcl::getFieldsList(*filtered_cloud) << ")." << std::endl;
 //
 //
+
+
+
+
+
+//selected_viewpoint: list of indices of selected viewpoints
+//std::pair<int, pcl::PointCloud<pcl::PointXYZ>> knapsack(int index, std::vector<int> selected_viewpoint, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& viewpoints, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+//
+//    std::pair<int, pcl::PointCloud<pcl::PointXYZ>> selected_intersections = calc_nb_intersection(selected_viewpoint, viewpoints);
+//    int total_nb_intersection = selected_intersections.first;
+//    pcl::PointCloud<pcl::PointXYZ> vertices_observed = selected_intersections.second;
+//
+//    //base case: stop if surface covered
+//    if (vertices_observed.size() >= cloud->points.size()) {
+//        return selected_intersections;
+//    }
+//
+//    //base case: no viewpoints lefdt
+//    if (index >= viewpoints.size()) {
+//        return selected_intersections;
+//    }
+//
+//    std::pair<int, pcl::PointCloud<pcl::PointXYZ>> branch1 = knapsack(index + 1, selected_viewpoint, viewpoints, cloud);
+//
+//
+//    std::vector<int> new_vec(selected_viewpoint);
+//    new_vec.push_back(index);
+//    std::pair<int, pcl::PointCloud<pcl::PointXYZ>> branch2 = knapsack(index + 1, selected_viewpoint, viewpoints, cloud);
+//
+//    //compare branch and coose the one with least intersection
+//    if (branch1.first < branch2.first)return branch1;
+//    return branch2;
+//
+//}
+
+
+
+
+//std::vector<int> result;
+//std::pair<int, pcl::PointCloud<pcl::PointXYZ>> x = knapsack(0, result, final_viewpoints, cloud);
+//
+//cout << "Number of Intersections: " << x.first << endl;
+//cout << "Number of V covered: " << x.second.points.size() << endl;
+
+
+   ///----------------------------------
+   // std::vector<std::vector<int>> memo;
+   // for (size_t i = 0; i < final_viewpoints.size()+1; i++)
+   // {   
+   //     std::vector<int> row;
+   //     for (size_t j = 0; j < output_viewpoints_cloud.size()+1 ; j++)
+   //     {
+   //         row.push_back(0);
+   //     }
+   // }
+   //
+   // for (size_t i = 0; i < final_viewpoints.size(); i++)
+   // {   
+   //     for (size_t w = 0; w < output_viewpoints_cloud.size(); w++)
+   //     {
+   //
+   //         // if the number of vertices observed <= w
+   //                 // memo[i][w] = max ( final_viewpoints[i - 1].second.size() + K[i - 1][w - wt[i - 1]], K[i - 1][w]);
+   //         i
+   //         
+   //
+   //     }
+   // }
+   //
+   //
+   // std::pair<int, pcl::PointCloud<pcl::PointXYZ>> selected_intersections = calc_nb_intersection(selected_viewpoint, viewpoints);
+   // int total_nb_intersection = selected_intersections.first;
+   // pcl::PointCloud<pcl::PointXYZ> vertices_observed = selected_intersections.second;
+
+
+
+    //std::vector<int> selected_viewpoints{ 0,2};
+    //cout << "Position of index 0  "<< final_viewpoints[0].first.block(0, 3, 3, 1)<<endl;
+    //cout << "Position of index 2  " << final_viewpoints[2].first.block(0, 3, 3, 1) << endl;
+    //
+    //SurfaceMesh surface1 = SurfaceMesh(surface);
+    //SurfaceMesh surface2 = SurfaceMesh(surface);
+    //SurfaceMesh surface4 = SurfaceMesh(surface);
+    //MyMesh::color_visible_surface(final_viewpoints[0].second, surface1);
+    //write_PLY(argv[3], surface1);
+    //MyMesh::color_visible_surface(final_viewpoints[2].second, surface2);
+    //write_PLY(argv[4], surface2); 
+    //std::pair<int, pcl::PointCloud<pcl::PointXYZ>> result = calc_nb_intersection(selected_viewpoints, final_viewpoints);
+    //cout << "NB intersections  " << result.first << endl;
+    ////color union
+    //MyMesh::color_visible_surface(result.second, surface4);
+    //write_PLY(argv[5], surface4);
+
+
+                                                         //generate power set
+                                                                    // keep only sets that cover all vertices - calculate union when making set
+                                                                    //pick one with smallest intersection value - calculate intersection sum   -- while going down the recursion add nb of intersectiona s number
+
+                                                                //sort sets by nb of intersection, go from small to big and stop when all surface is covered
+
+
+//std::pair<int, pcl::PointCloud<pcl::PointXYZ>> calc_nb_intersection(const std::vector<int>& selected_viewpoints, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& viewpoints) {
+//    //no intersection if there is 1 or 0 elements --> 0 intersections
+//    if (selected_viewpoints.size() <= 1) return std::pair<int, pcl::PointCloud<pcl::PointXYZ>>(0, pcl::PointCloud<pcl::PointXYZ>());
+//
+//    int nb_inter = 0;
+//
+//    pcl::PointCloud<pcl::PointXYZ> curr = viewpoints[selected_viewpoints[0]].second;
+//
+//    for (unsigned int i = 1; i < selected_viewpoints.size(); i++)
+//    {
+//
+//        std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>> viewpoint = viewpoints[selected_viewpoints[i]];
+//        pcl::PointCloud<pcl::PointXYZ> set = viewpoint.second;
+//
+//        //make union and calculate nb of intersection while at it
+//        for (size_t set_idx = 0; set_idx < set.size(); set_idx++)
+//        {
+//
+//            pcl::PointXYZ set_point = set[set_idx];
+//            bool found = false;
+//            for (size_t curr_idx = 0; curr_idx < curr.size(); curr_idx++)
+//            {
+//
+//                pcl::PointXYZ curr_point = curr[curr_idx];
+//                //if same point ==> intersection
+//                if (std::abs(curr_point.x - set_point.x) < 0.00001f && std::abs(curr_point.y - set_point.y) < 0.00001 && std::abs(curr_point.z - set_point.z) < 0.00001) {
+//                    nb_inter++;
+//                    found = true;
+//                    break;
+//                }
+//
+//            }
+//
+//            if (!found) {
+//                curr.push_back(set_point);
+//            }
+//        }
+//
+//    }
+//
+//    return std::pair<int, pcl::PointCloud<pcl::PointXYZ>>(nb_inter, curr);
+//}

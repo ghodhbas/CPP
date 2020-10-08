@@ -2,6 +2,8 @@
 #include "Occlusion_Culling.h"
 #include <vector>
 
+#define EPSILON 0.0000001f
+
 class PathPlanner
 {
     // at this point the frustum culling wroks on verticies/point cloud. this means that seeing the mesh 
@@ -31,8 +33,9 @@ public:
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> extract_surfaces_routine();
 
     void extract_surface(std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& map, Eigen::Vector4f new_position);
-
-
+    std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> greedy_set_cover(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& final_viewpoints);
+    std::pair<int, std::vector<pcl::PointXYZ> > calc_nb_intersection(int selected_viewpoint, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::PointCloud<pcl::PointXYZ>& seen_points);
+    void delete_point(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointXYZ point);
 
    /// getCentroidIndexAt(ijk) returen -1 if empty
 

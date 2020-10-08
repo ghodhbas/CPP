@@ -13,6 +13,7 @@
 #include <CGAL/IO/Color.h>
 #include <CGAL/property_map.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
+#include <CGAL/Side_of_triangle_mesh.h>
 
 //IO
 //#include <CGAL/IO/Polyhedron_iostream.h>

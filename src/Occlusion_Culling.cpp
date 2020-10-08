@@ -106,10 +106,10 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
 
     std::cout << "Voxel Grid Size: " << OriginalVoxelsSize << std::endl;
     fc.setInputCloud(cloud);
-    fc.setVerticalFOV(180);
-    fc.setHorizontalFOV(180);
+    fc.setVerticalFOV(160);
+    fc.setHorizontalFOV(160);
     fc.setNearPlaneDistance(0.2f);
-    fc.setFarPlaneDistance(4.f);
+    fc.setFarPlaneDistance(2.5f);
 
     AccuracyMaxSet = false;
 }
@@ -279,9 +279,11 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
                     //std::cout<<"Box Max X:"<<linePoint.x<<" y:"<< linePoint.y<<" z:"<< linePoint.z<<"\n";
                     lineSegments.push_back(linePoint);
 
-                    occlusionFreeCloud_local->points.push_back(ptest);
-                    occlusionFreeCloud->points.push_back(ptest);
+                    if (ptest.x != 0.f || ptest.y != 0.f || ptest.z != 0.f) {
+                        occlusionFreeCloud_local->points.push_back(ptest);
+                        occlusionFreeCloud->points.push_back(ptest);
 
+                    }
 
                 }
             }

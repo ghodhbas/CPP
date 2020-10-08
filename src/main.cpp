@@ -7,84 +7,65 @@
 #include <cmath> 
 #include <ctime>
 #include "PathPlanner.h"
-#include <CGAL/Side_of_triangle_mesh.h>
 
-double max_coordinate(const Polyhedron& poly)
-{
-    double max_coord = -std::numeric_limits<double>::infinity();
-    for (Polyhedron::Vertex_handle v : vertices(poly))
-    {
-        Point p = v->point();
-        max_coord = (std::max)(max_coord, p.x());
-        max_coord = (std::max)(max_coord, p.y());
-        max_coord = (std::max)(max_coord, p.z());
-    }
-    return max_coord;
-}
 
 int main(int argc, char* argv[])
 {
     Polyhedron poly;
     SurfaceMesh surface;
+
+
+
+    //set up MEesh
     import_OFF_file(poly, surface, argv[1]);
     //import_OBJ_file(m, "plane.obj");
     if (poly.is_empty() && surface.is_empty()) return 1;
+    //MyMesh::print_mesh_info(m);
+
+    //make point cloud from vertices
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
+    MyMesh::convert_to_pointcloud(surface, cloud);
+    cout << "Number of points in the Point cloud: " << cloud->points.size() << endl;
     
     //MyMesh::segment_mesh(surface);
-    //return 1;
-    //MyMesh::print_mesh_info(m);
-    /////////////////////----------------------------------------------------------------------------------------
-   
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>); 
 
-    
-
-    MyMesh::convert_to_pointcloud(surface, cloud);
-
+    /*--------------------------------             START FINDING PATH ALGORITHM    ---------------------          */
     PathPlanner pp(cloud);
+    //generate all the viewpoints where camera can be and the vertices they see
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> viewpoints =pp.extract_surfaces_routine();
     std::cout << "map size: " << viewpoints.size() << std::endl;
     
-    
+    //remove all viewpoints that are inside of the mesh 
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> final_viewpoints;
     std::vector< Kernel::Point_3> viewpoints_cloud;
+    MyMesh::remove_points_inside_mesh(poly, viewpoints, final_viewpoints, viewpoints_cloud);
 
-    //remove viewpoints that are inside of the mesh
-    CGAL::Side_of_triangle_mesh<Polyhedron, Kernel> inside(poly);
-    double size = max_coordinate(poly);
-    int nb_inside = 0;
-    int nb_boundary = 0;
-    for (std::size_t i = 0; i < viewpoints.size(); ++i)
-    {     
-        Eigen::Vector3f point_eigen = viewpoints[i].first.block(0, 3, 3, 1);
-        Kernel::Point_3 point = Kernel::Point_3(point_eigen.x(), point_eigen.y(), point_eigen.z()) ;
-        CGAL::Bounded_side res = inside(point);
-        if (res == CGAL::ON_BOUNDED_SIDE) {
-            ++nb_inside;
-            
-        }else if (res == CGAL::ON_BOUNDARY) { ++nb_boundary; }
-        else {
-            final_viewpoints.push_back(viewpoints[i]);
-            viewpoints_cloud.push_back(point);
-        }
+    //Solve the set cover problem to get the lowest number of viewpoints that cover the surface  ---   Maximaze viewpoint-mesh intersection, remove intersectiona nd viewpoint, repeat
+    std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> Solution = pp.greedy_set_cover(cloud, final_viewpoints);
+    cout << "Number of Viewpoints to solve the surface: " << Solution.size() << endl;
+
+
+    //GEnerate output (colored surface + viewpoints)
+    std::vector< Kernel::Point_3> output_viewpoints_cloud;
+    for (size_t i = 0; i < Solution.size(); i++)
+    {
+        Eigen::Matrix4f pose = Solution[i].first;
+        Eigen::Vector3f coord = pose.block(0, 3, 3, 1);
+        output_viewpoints_cloud.push_back(Kernel::Point_3(coord.x(), coord.y(), coord.z()));
+        MyMesh::color_visible_surface(Solution[i].second, surface);
     }
+    //output mesh
+    write_PLY(argv[3], surface);
+    //output point cloud for viewpoints
+    write_PLY(argv[2], output_viewpoints_cloud);
 
-    std::cerr << "  " << nb_inside << " points inside " << std::endl;
-    std::cerr << "  " << nb_boundary << " points on boundary " << std::endl;
-    std::cerr << "  " << viewpoints.size() - nb_inside - nb_boundary << " points outside " << std::endl;
 
-
-    std::cerr << " TEST CLOUD SIZE " << viewpoints_cloud.size() << std::endl;
-    write_PLY(argv[2], viewpoints_cloud);
 
 
    ///color visible surface
    // MyMesh::color_visible_surface(visible_s, surface);
    // write_PLY(argv[2], surface);
 
-
-
-   
    return EXIT_SUCCESS;
 }
 
