@@ -2,7 +2,9 @@
 #include "Occlusion_Culling.h"
 #include <vector>
 
-#define EPSILON 0.0000001f
+#include "MyMesh.h"
+#include "graph.hpp"
+#define EPSILON 0.000001f
 
 class PathPlanner
 {
@@ -14,6 +16,8 @@ class PathPlanner
 private:
     OcclusionCulling* OC;
     UAV* drone;
+
+
     pcl::VoxelGridOcclusionEstimationT voxelGrid;
     float voxelRes, nb_occupiedVoxels, nb_freeVoxels;
     //bb indices
@@ -22,6 +26,10 @@ private:
     Eigen::Vector3i drone_start_index, drone_end_index;
     Eigen::Vector3i BB_start_index, BB_end_index;
     Eigen::Vector3f drone_start, drone_end;
+
+    Graph graph;
+
+    
 
 public:
 
@@ -34,45 +42,10 @@ public:
 
     void extract_surface(std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& map, Eigen::Vector4f new_position);
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> greedy_set_cover(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& final_viewpoints);
-    std::pair<int, std::vector<pcl::PointXYZ> > calc_nb_intersection(int selected_viewpoint, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::PointCloud<pcl::PointXYZ>& seen_points);
-    void delete_point(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointXYZ point);
+    std::pair<int, std::vector<pcl::PointXYZ> > calc_nb_intersection( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointCloud<pcl::PointXYZ>& seen_points);
+    bool delete_point(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointXYZ point);
 
-   /// getCentroidIndexAt(ijk) returen -1 if empty
-
-    ////getting grid size and start
-    //Eigen::Vector4f min_b = grid.getCentroidCoordinate(grid.getMinBoxCoordinates());
-    //Eigen::Vector4f max_b = grid.getCentroidCoordinate(grid.getMaxBoxCoordinates());
-
-   
-    //1 - make a KDtree of the point cloud.
-    //    2 - make clusters of the kdtree nodes
-    //    3 - convert each cluster to a point cloud-- > now every kd node is a point cloud that can be used for surface extraction
-
-    //    1 - voxelize each cluster and get bounding box                                                               //getting grid size and start
-    //    Eigen::Vector4f min_b = grid.getCentroidCoordinate(grid.getMinBoxCoordinates());
-    //Eigen::Vector4f max_b = grid.getCentroidCoordinate(grid.getMaxBoxCoordinates());
-    //2 - add padding to the bounding box
-    //    3 - select start of grid(starting voxel)
-
-    //    1 - voxelize the surface into bigger blocks
-    //    - padding
-    //    - use centroids as  coordinate for drone
-    //    - for each centroid sample 4 view point(1 looking in the x dir, and in the - x dir using 180 FOV)
-    //    - add all results into a Vector4f
-    //    - solve knapsack such that pick smallest number of viewpoints such that the number of vertices seen is ma
-
-
-
-    //------------COVERED VOXELS OF THE MODEL-------------------------/
-
-
-    // pcl::PointCloud<pcl::PointXYZ> coveredVoxels;
-    //pcl::VoxelGridOcclusionEstimationT coveredCloudFilteredVoxels;
-    //coveredCloudFilteredVoxels.setInputCloud(globalCloudPtr);
-    //coveredCloudFilteredVoxels.setLeafSize(voxelResForConn, voxelResForConn, voxelResForConn);
-    //coveredCloudFilteredVoxels.initializeVoxelGrid();
-    //coveredCloudFilteredVoxels.filter(coveredVoxels);
-    //std::cout << " ////// Coverage % : " << ((double)coveredVoxels.size() / (double)modelVoxelsForConn.size()) * 100 << " //////" << std::endl;
-
+    //provide poly to check if point inside of it
+    void construct_graph(Polyhedron& poly);
 };
 

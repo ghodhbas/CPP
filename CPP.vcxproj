@@ -179,6 +179,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\IO.cpp" />
+    <ClCompile Include="src\MyMesh.cpp" />
     <ClCompile Include="src\PathPlanner.cpp" />
     <ClCompile Include="src\Occlusion_Culling.cpp" />
     <ClCompile Include="src\Frustum.cpp" />
@@ -186,6 +188,7 @@
     <ClCompile Include="src\VoxelGridOcclusionEstimationT.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\graph.hpp" />
     <ClInclude Include="src\PathPlanner.h" />
     <ClInclude Include="src\Occlusion_Culling.h" />
     <ClInclude Include="src\Frustum.h" />

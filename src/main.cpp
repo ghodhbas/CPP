@@ -1,5 +1,3 @@
-#include "MyMesh.h"
-#include "IO.h"
 #include <pcl/point_types.h>
 #include "Occlusion_Culling.h"
 #include <fstream>
@@ -7,6 +5,7 @@
 #include <cmath> 
 #include <ctime>
 #include "PathPlanner.h"
+#include "IO.h"
 
 
 int main(int argc, char* argv[])
@@ -17,7 +16,7 @@ int main(int argc, char* argv[])
 
 
     //set up MEesh
-    import_OFF_file(poly, surface, argv[1]);
+    IO::import_OFF_file(poly, surface, argv[1]);
     //import_OBJ_file(m, "plane.obj");
     if (poly.is_empty() && surface.is_empty()) return 1;
     //MyMesh::print_mesh_info(m);
@@ -31,18 +30,24 @@ int main(int argc, char* argv[])
 
     /*--------------------------------             START FINDING PATH ALGORITHM    ---------------------          */
     PathPlanner pp(cloud);
+
+
     //generate all the viewpoints where camera can be and the vertices they see
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> viewpoints =pp.extract_surfaces_routine();
-    std::cout << "map size: " << viewpoints.size() << std::endl;
+    std::cout << "Total Number of Viewpoints: " << viewpoints.size() << std::endl;
     
     //remove all viewpoints that are inside of the mesh 
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> final_viewpoints;
     std::vector< Kernel::Point_3> viewpoints_cloud;
     MyMesh::remove_points_inside_mesh(poly, viewpoints, final_viewpoints, viewpoints_cloud);
-
+    cout << "NB viewpoints after cleaning: " << final_viewpoints.size() << endl;
     //Solve the set cover problem to get the lowest number of viewpoints that cover the surface  ---   Maximaze viewpoint-mesh intersection, remove intersectiona nd viewpoint, repeat
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> Solution = pp.greedy_set_cover(cloud, final_viewpoints);
+    
     cout << "Number of Viewpoints to solve the surface: " << Solution.size() << endl;
+
+
+    pp.construct_graph(poly);
 
 
     //GEnerate output (colored surface + viewpoints)
@@ -55,11 +60,9 @@ int main(int argc, char* argv[])
         MyMesh::color_visible_surface(Solution[i].second, surface);
     }
     //output mesh
-    write_PLY(argv[3], surface);
+    IO::write_PLY(argv[3], surface);
     //output point cloud for viewpoints
-    write_PLY(argv[2], output_viewpoints_cloud);
-
-
+    IO::write_PLY(argv[2], output_viewpoints_cloud);
 
 
    ///color visible surface

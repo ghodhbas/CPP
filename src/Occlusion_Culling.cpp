@@ -18,7 +18,7 @@ OcclusionCulling::OcclusionCulling( std::string modelName) :
     // Load model ----------------------------TODO
     //
     cloudCopy->points = cloud->points;
-    voxelRes = 1.f;
+    voxelRes = 3.f;
     OriginalVoxelsSize = 0.0;
     id = 0.0;
     viewEntropy = 0.0;
@@ -73,7 +73,7 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     cloud->points = cloudPtr->points;
     cloudCopy->points = cloud->points;
 
-    voxelRes = 1.f;
+    voxelRes = 3.f;
     frame_id = "world";
     OriginalVoxelsSize = 0.0;
     id = 0.0;
@@ -104,12 +104,12 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
         }
     }
 
-    std::cout << "Voxel Grid Size: " << OriginalVoxelsSize << std::endl;
+    std::cout << "Oocupied Voxel Grid Size: " << OriginalVoxelsSize << std::endl;
     fc.setInputCloud(cloud);
-    fc.setVerticalFOV(160);
-    fc.setHorizontalFOV(160);
+    fc.setVerticalFOV(180);
+    fc.setHorizontalFOV(180);
     fc.setNearPlaneDistance(0.2f);
-    fc.setFarPlaneDistance(2.5f);
+    fc.setFarPlaneDistance(3.f);
 
     AccuracyMaxSet = false;
 }
@@ -259,25 +259,25 @@ pcl::PointCloud<pcl::PointXYZ> OcclusionCulling::extractVisibleSurface(UAV camer
                 if (tmin != -1)
                 {
                     // coordinate of the boundary of the voxel grid
-                    Eigen::Vector4f start = cloud->sensor_origin_ + tmin * direction;
+                    //Eigen::Vector4f start = cloud->sensor_origin_ + tmin * direction;
 
-                    linePoint.x = cloud->sensor_origin_[0]; linePoint.y = cloud->sensor_origin_[1]; linePoint.z = cloud->sensor_origin_[2];
-                    //std::cout<<"Box Min X:"<<linePoint.x<<" y:"<< linePoint.y<<" z:"<< linePoint.z<<"\n";
-                    lineSegments.push_back(linePoint);
-
-                    linePoint.x = start[0]; linePoint.y = start[1]; linePoint.z = start[2];
-                    //std::cout<<"Box Max X:"<<linePoint.x<<" y:"<< linePoint.y<<" z:"<< linePoint.z<<"\n";
-                    lineSegments.push_back(linePoint);
-
-
-                    //extra?
-                    linePoint.x = start[0]; linePoint.y = start[1]; linePoint.z = start[2];
-                    //std::cout<<"Box Max X:"<<linePoint.x<<" y:"<< linePoint.y<<" z:"<< linePoint.z<<"\n";
-                    lineSegments.push_back(linePoint);
-
-                    linePoint.x = centroid[0]; linePoint.y = centroid[1]; linePoint.z = centroid[2];
-                    //std::cout<<"Box Max X:"<<linePoint.x<<" y:"<< linePoint.y<<" z:"<< linePoint.z<<"\n";
-                    lineSegments.push_back(linePoint);
+                    //linePoint.x = cloud->sensor_origin_[0]; linePoint.y = cloud->sensor_origin_[1]; linePoint.z = cloud->sensor_origin_[2];
+                    ////std::cout<<"Box Min X:"<<linePoint.x<<" y:"<< linePoint.y<<" z:"<< linePoint.z<<"\n";
+                    //lineSegments.push_back(linePoint);
+                    //
+                    //linePoint.x = start[0]; linePoint.y = start[1]; linePoint.z = start[2];
+                    ////std::cout<<"Box Max X:"<<linePoint.x<<" y:"<< linePoint.y<<" z:"<< linePoint.z<<"\n";
+                    //lineSegments.push_back(linePoint);
+                    //
+                    //
+                    ////extra?
+                    //linePoint.x = start[0]; linePoint.y = start[1]; linePoint.z = start[2];
+                    ////std::cout<<"Box Max X:"<<linePoint.x<<" y:"<< linePoint.y<<" z:"<< linePoint.z<<"\n";
+                    //lineSegments.push_back(linePoint);
+                    //
+                    //linePoint.x = centroid[0]; linePoint.y = centroid[1]; linePoint.z = centroid[2];
+                    ////std::cout<<"Box Max X:"<<linePoint.x<<" y:"<< linePoint.y<<" z:"<< linePoint.z<<"\n";
+                    //lineSegments.push_back(linePoint);
 
                     if (ptest.x != 0.f || ptest.y != 0.f || ptest.z != 0.f) {
                         occlusionFreeCloud_local->points.push_back(ptest);

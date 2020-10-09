@@ -1,6 +1,7 @@
 #include "PathPlanner.h"
 #include <iostream>
 
+
 PathPlanner::PathPlanner() {
 	std::cerr << "DO NOT USE THIS CONSTRUCTOR" << std::endl;
 }
@@ -10,7 +11,7 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	drone = new UAV();
 
 	//create voxel grid of the point cloud
-	voxelRes = 1.f;
+	voxelRes = 3.f;
 	voxelGrid.setInputCloud(input_cloud);
 	voxelGrid.setLeafSize(voxelRes, voxelRes, voxelRes);
 	voxelGrid.initializeVoxelGrid();
@@ -27,10 +28,10 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	max_b[2] = (static_cast<float> ((max_b_idx[2]) + 1) * leaf_size[2]);
 
 
-	std::cout << "In Path Planner -  Voxel grid Min indicies: "<< min_b_idx.x()<< ", "<< min_b_idx.y()<<", "<< min_b_idx.z() << std::endl;
-	std::cout << "In Path Planner -  Voxel grid Max indicies: " << max_b_idx.x() << ", " << max_b_idx.y() << ", " << max_b_idx.z() << std::endl;
-	std::cout << "In Path Planner -  Voxel grid Min : " << min_b.x() << ", " << min_b.y() << ", " << min_b.z() << std::endl;
-	std::cout << "In Path Planner -  Voxel grid Max : " << max_b.x() << ", " << max_b.y() << ", " << max_b.z() << std::endl;
+	std::cout << "In Path Planner -  Voxel grid Min indicies (without padding): "<< min_b_idx.x()<< ", "<< min_b_idx.y()<<", "<< min_b_idx.z() << std::endl;
+	std::cout << "In Path Planner -  Voxel grid Max indicies (without padding): " << max_b_idx.x() << ", " << max_b_idx.y() << ", " << max_b_idx.z() << std::endl;
+	std::cout << "In Path Planner -  Voxel grid Min (without padding): " << min_b.x() << ", " << min_b.y() << ", " << min_b.z() << std::endl;
+	std::cout << "In Path Planner -  Voxel grid Max (without padding) : " << max_b.x() << ", " << max_b.y() << ", " << max_b.z() << std::endl;
 	
 	
 	//// 3 and 5 is used to making the BB bigger not exactly on the boundry of the cluster
@@ -41,44 +42,47 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
    //increase the index and use it with voxel res to calculate position of the srone throughout the grid
    //with everyposition check if it's in the voxel grid, if it is che ck if it is occupied
 
-	//gridSize[1] = std::abs(max_b_idx[1] - min_b_idx[1]) + maximizeSizeXY;//
-	//gridSize[2] = std::abs(max_b_idx[2] - min_b_idx[2]) + maximizeSizeZ;//
-	//gridSize[0] = std::abs(max_b_idx[0] - min_b_idx[0]) + maximizeSizeXY;//
-	//////std::cout << "In Path Planner -  Drone indicies: " << gridSize[0] << ", " << gridSize[1] << ", " << gridSize[2] << std::endl;
-	
 	drone_start[0] = min_b[0] - ((float)maximizeSizeXY/2.f) ;//5
 	drone_start[1] = min_b[1] - ((float)maximizeSizeXY/2.f) ;//5
 	drone_start[2] = min_b[2] - ((float)maximizeSizeZ/2.f);//
-	std::cout << "Drone start : " << drone_start << std::endl;
+	
 
 	drone_end[0] = max_b[0] + ((float)maximizeSizeXY / 2.f);//5
 	drone_end[1] = max_b[1] + ((float)maximizeSizeXY / 2.f);//5
 	drone_end[2] = max_b[2] + ((float)maximizeSizeZ / 2.f);//
-	std::cout << "Drone end : " << drone_end << std::endl;
+	
 
 	drone_start_index[0] = min_b_idx[0] - (((int)(maximizeSizeXY / 2)) / voxelRes);
 	drone_start_index[1] = min_b_idx[1] - (((int)(maximizeSizeXY / 2)) / voxelRes);
 	drone_start_index[2] = min_b_idx[2] - (((int)(maximizeSizeZ / 2)) / voxelRes);
-	std::cout << "Drone start index: " << drone_start_index << std::endl;
+	
 	
 	
 	drone_end_index[0] = max_b_idx[0] + (((int)(maximizeSizeXY / 2))/voxelRes);
 	drone_end_index[1] = max_b_idx[1] + (((int)(maximizeSizeXY / 2))/voxelRes);
 	drone_end_index[2] = max_b_idx[2] + (((int)(maximizeSizeZ / 2) )/ voxelRes);
-	std::cout << "Drone end index: " << drone_end_index << std::endl;
 
+	gridSize[0] = drone_end_index[0] - drone_start_index[0] +1;//
+	gridSize[1] = drone_end_index[1] - drone_start_index[1] +1;//
+	gridSize[2] = drone_end_index[2] - drone_start_index[2] +1;//
+
+	std::cout << "In Path Planner -  Grid Size (with padding): " << gridSize[0] << ", " << gridSize[1] << ", " << gridSize[2] << std::endl;
+	std::cout << "Drone start index: " << drone_start_index << std::endl;
+	std::cout << "Drone end index: " << drone_end_index << std::endl;
+	std::cout << "Drone start : " << drone_start << std::endl;
+	std::cout << "Drone end : " << drone_end << std::endl;
 	
 	
 	BB_start_index[0] = min_b_idx[0] ;//5
 	BB_start_index[1] = min_b_idx[1];//5
 	BB_start_index[2] = min_b_idx[2];
-	std::cout << "BB start index: " << BB_start_index << std::endl;
+	//std::cout << "BB start index: " << BB_start_index << std::endl;
 
 
 	BB_end_index[0] = max_b_idx[0] ;
 	BB_end_index[1] = max_b_idx[1];
 	BB_end_index[2] = max_b_idx[2];
-	std::cout << "BB end index: " << BB_end_index << std::endl;
+	//std::cout << "BB end index: " << BB_end_index << std::endl;
 	
 }	
 
@@ -171,27 +175,28 @@ void PathPlanner::extract_surface(std::vector<std::pair<Eigen::Matrix4f, pcl::Po
 
 
 
+//fixing erasing donc advance 
+bool PathPlanner::delete_point(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointXYZ point) {
 
-void PathPlanner::delete_point(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointXYZ point) {
 	for (size_t cloud_idx = 0; cloud_idx < cloud->points.size(); cloud_idx++)
 	{
 		pcl::PointXYZ cloud_point = cloud->at(cloud_idx);
 		if (std::abs(point.x - cloud_point.x) < EPSILON && std::abs(point.y - cloud_point.y) < EPSILON && std::abs(point.z - cloud_point.z) < EPSILON) {
 			cloud->erase(cloud->begin() + cloud_idx);
-			break;
+			return true;
 		}
 	}
+	return false;
 }
 
 
-std::pair<int, std::vector<pcl::PointXYZ> > PathPlanner::calc_nb_intersection(int selected_viewpoint, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::PointCloud<pcl::PointXYZ>& seen_points) {
+std::pair<int, std::vector<pcl::PointXYZ> > PathPlanner::calc_nb_intersection(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointCloud<pcl::PointXYZ>& seen_points) {
 
 	int nb_inter = 0;
 	std::vector<pcl::PointXYZ> intersection_points;
 
 	for (size_t seen_point_idx = 0; seen_point_idx < seen_points.size(); seen_point_idx++)
 	{
-		bool found = false;
 		pcl::PointXYZ point = seen_points[seen_point_idx];
 		for (size_t cloud_idx = 0; cloud_idx < cloud->points.size(); cloud_idx++)
 		{
@@ -199,7 +204,6 @@ std::pair<int, std::vector<pcl::PointXYZ> > PathPlanner::calc_nb_intersection(in
 			if (std::abs(point.x - cloud_point.x) < EPSILON && std::abs(point.y - cloud_point.y) < EPSILON && std::abs(point.z - cloud_point.z) < EPSILON) {
 				nb_inter++;
 				intersection_points.push_back(cloud_point);
-				found = true;
 				break;
 			}
 		}
@@ -208,7 +212,6 @@ std::pair<int, std::vector<pcl::PointXYZ> > PathPlanner::calc_nb_intersection(in
 
 	return std::pair<int, std::vector<pcl::PointXYZ> >(nb_inter, intersection_points);
 }
-
 
 
 
@@ -232,17 +235,18 @@ std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> PathPlan
 	//stores the indecies of the solutions viewpoints
 	std::vector<int> solution_indx;
 	// contains number of intersction for the ith viewpoint
-	std::map<int, int> intersection_map;
+	//std::map<int, int> intersection_map;
 	std::map<int, std::vector<pcl::PointXYZ>> to_remove_map;
 
 	int solution_size = 0;
 	int total_pts_removed = 0;
 
 	//while we have not covered all the points on the cloud and did not try all viewpoints
-	while ((uncovered->points.size() != 0 || covered->points.size() == cloud->points.size()) && solution_size < final_viewpoints.size()) {
+	while ((uncovered->points.size() != 0 || covered->points.size() >= cloud->points.size()) && solution_size < final_viewpoints.size()) {
 
 		int max_nb_intersections = 0;
 		int index = -1;
+		std::pair<int, std::vector<pcl::PointXYZ>> result;
 		//select set that covers most of uncovered. viewpoint[j] inter uncovered is max
 		for (int j = 0; j < final_viewpoints.size(); j++)
 		{
@@ -250,25 +254,29 @@ std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> PathPlan
 			//if we have already selected this viewpoint move to the next one
 			if (std::find(solution_indx.begin(), solution_indx.end(), j) != solution_indx.end()) continue;
 
-			int nb_inter;
+			int nb_inter= 0;
 			//calculate nb of intersections
 			pcl::PointCloud<pcl::PointXYZ> seen_points = final_viewpoints[j].second;
 			//get the intersection between what the camera sees and the cloud that has not been covered yet
-			std::pair<int, std::vector<pcl::PointXYZ>> result = calc_nb_intersection(j, uncovered, seen_points);
-			nb_inter = result.first;
-			intersection_map.insert(std::pair<int, int>(j, nb_inter));
-			//save the vertices that will be removed if this jth viewpoint is selected
-			to_remove_map.insert(std::pair<int, std::vector<pcl::PointXYZ>>(j, result.second));
-
-
+			std::pair<int, std::vector<pcl::PointXYZ>> tmp = calc_nb_intersection(uncovered, seen_points);
+			nb_inter = tmp.first;
+			
 			//found a new better viewpoint
 			if (nb_inter > max_nb_intersections) {
 				max_nb_intersections = nb_inter;
 				index = j;
+				result = tmp;
+				//intersection_map.insert(std::pair<int, int>(index, nb_inter));
+				//save the vertices that will be removed if this jth viewpoint is selected
 			}
 		}
 
-		if (index == -1) return Solution;
+		to_remove_map.insert(std::pair<int, std::vector<pcl::PointXYZ>>(index, result.second));
+		
+		if (index == -1) {
+			std::cout << "Stopped looking for additional sets: No more intersections with the mesh" << std::endl;
+			return Solution;
+		}
 		//add the set to soltion
 		std::cout << "Best viewpoint index: " << index << std::endl;
 		solution_indx.push_back(index);
@@ -288,6 +296,7 @@ std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> PathPlan
 			//total_pts_removed++;
 		}
 		std::cout << "Cloud size after delete from viewpoint: " << uncovered->points.size() << std::endl;
+		std::cout << "covered size: " << covered->points.size() << std::endl << std::endl;
 	}
 
 	//fix viewed points
@@ -296,3 +305,155 @@ std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> PathPlan
 
 }
 
+
+void PathPlanner::construct_graph(Polyhedron& poly) {
+	//track index in graph
+	int index = 0;
+
+	std::vector<int> invalid_cell_idx;
+	//map saves Key--> index in graph and  Value-->the the order of the cell in overall grid
+	std::map<int, int> index_map;
+
+	//used to check point inside of poly
+	CGAL::Side_of_triangle_mesh<Polyhedron, Kernel> inside(poly);
+
+	//track the index in the gris overall
+	int count = 0;
+	for (int kk = drone_start_index.z(); kk <= drone_end_index.z(); ++kk)
+	{
+		for (int jj = drone_start_index.y(); jj <= drone_end_index.y(); ++jj)
+		{
+			for (int ii = drone_start_index.x(); ii <= drone_end_index.x(); ++ii)
+			{
+				count++;
+				Eigen::Vector3i ijk1(ii, jj, kk);
+				Eigen::Vector4f new_position = voxelGrid.getCentroidCoordinate(ijk1);
+
+				//skip if voxel occupied by verticies
+				if (voxelGrid.getCentroidIndexAt(ijk1) != -1) {
+					invalid_cell_idx.push_back(count-1);
+					continue;
+				}
+					
+				//skip if point inside mesh
+				if (MyMesh::point_inside_mesh(inside, new_position)) {
+					invalid_cell_idx.push_back(count-1);
+					continue;
+				}
+
+				//shift grid to 0
+				Eigen::Vector3i index_vec_shifted;
+				index_vec_shifted[0] = ii - drone_start_index.x();
+				index_vec_shifted[1] = jj - drone_start_index.y();
+				index_vec_shifted[2] = kk - drone_start_index.z();
+				
+				//construct node
+				Node* node = new Node();
+				node->position = new_position;
+				node->index_grid = ijk1;
+				node->index_vec = index_vec_shifted;
+				//std::cout << "Index_vec: " << node->index_vec << std::endl;
+				node->index_int = index;
+
+				index_map.emplace(std::pair<int, int>(count-1, index));
+				//std::cout << "Testing conversion - int to vec: " << convert_int_to_vec(node->index_int, gridSize) << std::endl;
+				//std::cout << "Index_int: " << node->index_int << std::endl;
+				//std::cout << "Position: " << node->position << std::endl<< std::endl << std::endl;
+				//std::cout << "Testing conversion - vec to index: " << convert_vec_to_int(node->index_vec, gridSize) << std::endl;
+				
+				graph.add_node(node);
+				
+				index++;
+				
+			}
+			
+		}
+	}
+
+	std::cout << "NB Nodes in graph: " << graph.nodes.size() << std::endl;
+	//std::cout << "loop count: " << count << std::endl;
+
+	//save neighbours --assumin up is +t -- right +z -- front +x
+	for (int i = 0; i < graph.size(); i++)
+	{
+		Node* node = graph[i];
+		Eigen::Vector3i cell_vec = node->index_vec;
+		int cell_idx = node->index_int;
+
+		//save neighbor up   ---  check if it is valid and within bounds 
+		Eigen::Vector3i up = cell_vec;
+		up[1] = up[1] + 1;
+		int up_idx = convert_vec_to_int(up, gridSize);
+		//if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), up_idx) == invalid_cell_idx.end()) && up_idx >= 0 && up_idx < ((gridSize[0] * gridSize[1] * gridSize[2]) + 1)) {
+		if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), up_idx) == invalid_cell_idx.end()) && up[0] >= 0 && up[1] >= 0 && up[2] >= 0 && up[0] < gridSize[0] && up[1] < gridSize[1] && up[2] < gridSize[2]) {
+			//get index of the neighbour in the graph
+			int index = index_map[up_idx];
+			//save neighbour
+			node->neighbours.push_back(graph[index]);
+		}
+
+		//save neighbor down
+		Eigen::Vector3i down = cell_vec;
+		down[1] = down[1] -1 ;
+		int down_idx = convert_vec_to_int(down, gridSize);
+		//if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), down_idx) == invalid_cell_idx.end()) && down_idx >= 0 && down_idx < ((gridSize[0] * gridSize[1] * gridSize[2]) +1)) {
+		if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), down_idx) == invalid_cell_idx.end()) && down[0] >= 0 && down[1] >= 0 && down[2] >= 0 && down[0] < gridSize[0] && down[1] < gridSize[1] && down[2] < gridSize[2]) {
+			//get index of the neighbour in the graph
+			int index = index_map[down_idx];
+			//save neighbour
+			node->neighbours.push_back(graph[index]);
+		}
+
+		//save neighbor right
+		Eigen::Vector3i right = cell_vec;
+		right[2] = right[2] + 1;
+		int right_idx = convert_vec_to_int(right, gridSize);
+		//if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), right_idx) == invalid_cell_idx.end()) && right_idx >= 0 && right_idx < ((gridSize[0] * gridSize[1] * gridSize[2]) + 1)) {
+		if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), right_idx) == invalid_cell_idx.end()) && right[0] >= 0 && right[1] >= 0 && right[2] >= 0 && right[0] < gridSize[0] && right[1] < gridSize[1] && right[2] < gridSize[2]) {
+			//get index of the neighbour in the graph
+			int index = index_map[right_idx];
+			//save neighbour
+			node->neighbours.push_back(graph[index]);
+		}
+
+		//save neighbor left
+		Eigen::Vector3i left = cell_vec;
+		left[2] = left[2] - 1;
+		int left_idx = convert_vec_to_int(left, gridSize);
+		//if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), left_idx) == invalid_cell_idx.end()) && left_idx >= 0 && left_idx < ((gridSize[0] * gridSize[1] * gridSize[2]) + 1)) {
+		if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), left_idx) == invalid_cell_idx.end()) && left[0] >= 0 && left[1] >= 0 && left[2] >= 0 && left[0] < gridSize[0] && left[1] < gridSize[1] && left[2] < gridSize[2]) {
+		//get index of the neighbour in the graph
+			int index = index_map[left_idx];
+			//save neighbour
+			node->neighbours.push_back(graph[index]);
+		}
+
+		//save neighbor front
+		Eigen::Vector3i  front= cell_vec;
+		front[0] = front[0] + 1;
+		int front_idx = convert_vec_to_int(front, gridSize);
+		//if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), front_idx) == invalid_cell_idx.end()) && front_idx >= 0 && front_idx < ((gridSize[0] * gridSize[1] * gridSize[2]) + 1)) {
+		if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), front_idx) == invalid_cell_idx.end()) && front[0] >= 0 && front[1] >= 0 && front[2] >= 0 && front[0] < gridSize[0] && front[1] < gridSize[1] && front[2] < gridSize[2]) {
+		//get index of the neighbour in the graph
+			int index = index_map[front_idx];
+			//save neighbour
+			node->neighbours.push_back(graph[index]);
+		}
+
+		//save neighbor back
+		Eigen::Vector3i  back = cell_vec;
+		back[0] = back[0] - 1;
+		int back_idx = convert_vec_to_int(back, gridSize);
+		//check that we dont exceed bounds and that cell is valid
+		if ((std::find(invalid_cell_idx.begin(), invalid_cell_idx.end(), back_idx) == invalid_cell_idx.end()) && back[0] >= 0 && back[1] >= 0 && back[2] >= 0 && back[0] < gridSize[0] && back[1] < gridSize[1] && back[2] < gridSize[2]) {
+			//get index of the neighbour in the graph
+			int index = index_map[back_idx];
+			//save neighbour
+			node->neighbours.push_back(graph[index]);
+		}
+
+
+		//add diagnals?
+	}
+
+}
