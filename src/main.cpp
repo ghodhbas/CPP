@@ -41,28 +41,34 @@ int main(int argc, char* argv[])
     std::vector< Kernel::Point_3> viewpoints_cloud;
     MyMesh::remove_points_inside_mesh(poly, viewpoints, final_viewpoints, viewpoints_cloud);
     cout << "NB viewpoints after cleaning: " << final_viewpoints.size() << endl;
+
+
     //Solve the set cover problem to get the lowest number of viewpoints that cover the surface  ---   Maximaze viewpoint-mesh intersection, remove intersectiona nd viewpoint, repeat
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> Solution = pp.greedy_set_cover(cloud, final_viewpoints);
-    
-    cout << "Number of Viewpoints to solve the surface: " << Solution.size() << endl;
-
-
-    pp.construct_graph(poly);
+    cout << "solution " << Solution.size() << endl;
 
 
     //GEnerate output (colored surface + viewpoints)
-    std::vector< Kernel::Point_3> output_viewpoints_cloud;
-    for (size_t i = 0; i < Solution.size(); i++)
-    {
-        Eigen::Matrix4f pose = Solution[i].first;
-        Eigen::Vector3f coord = pose.block(0, 3, 3, 1);
-        output_viewpoints_cloud.push_back(Kernel::Point_3(coord.x(), coord.y(), coord.z()));
-        MyMesh::color_visible_surface(Solution[i].second, surface);
-    }
-    //output mesh
-    IO::write_PLY(argv[3], surface);
-    //output point cloud for viewpoints
-    IO::write_PLY(argv[2], output_viewpoints_cloud);
+    //std::vector< Kernel::Point_3> output_viewpoints_cloud;
+    //for (size_t i = 0; i < Solution.size(); i++)
+    //{
+    //    Eigen::Matrix4f pose = Solution[i].first;
+    //    Eigen::Vector3f coord = pose.block(0, 3, 3, 1);
+    //    output_viewpoints_cloud.push_back(Kernel::Point_3(coord.x(), coord.y(), coord.z()));
+    //    MyMesh::color_visible_surface(Solution[i].second, surface);
+    //}
+    ////output mesh
+    //IO::write_PLY(argv[3], surface);
+    ////output point cloud for viewpoints
+    //IO::write_PLY(argv[2], output_viewpoints_cloud);
+
+
+    //saves the indices withion the graph where the viewpoints are located
+    std::vector<int> viewpoint_graph_idx;
+    pp.construct_graph(poly, Solution, viewpoint_graph_idx);
+    pp.calculate_distances(viewpoint_graph_idx);
+
+
 
 
    ///color visible surface

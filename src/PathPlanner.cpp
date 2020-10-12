@@ -110,25 +110,25 @@ std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> PathPlan
 				Eigen::Vector3i ijk1(ii, jj, kk);
 				Eigen::Vector4f new_position = voxelGrid.getCentroidCoordinate(ijk1);
 
-				//don't bother checking whether indices are in the padding (outside the BB)
-				if (kk < BB_start_index.z() || kk> BB_end_index.z() || jj<BB_start_index.y() || jj > BB_end_index.y() || ii<BB_start_index.x() || ii > BB_end_index.x())
-				{
-					nb_padding++;
-					extract_surface(map, new_position);
-
-				}
-				else {
-					int index1 = voxelGrid.getCentroidIndexAt(ijk1);
-
-					//std::cout << "Index: " << index1 << std::endl;
-					//if occupied
-					if (index1 != -1)
+				int index1 = voxelGrid.getCentroidIndexAt(ijk1);
+				if (index1 == -1)
+				{	
+					//outside of shape within the padding
+					if (kk < BB_start_index.z() || kk> BB_end_index.z() || jj<BB_start_index.y() || jj > BB_end_index.y() || ii<BB_start_index.x() || ii > BB_end_index.x())
 					{
+						nb_padding++;
 						extract_surface(map, new_position);
-						i++;
+						continue;
 
 					}
+
+					extract_surface(map, new_position);
+					i++;
+
 				}
+
+				//don't bother checking whether indices are in the padding (outside the BB)
+				
 
 			}
 		}
@@ -238,6 +238,8 @@ std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> PathPlan
 	//std::map<int, int> intersection_map;
 	std::map<int, std::vector<pcl::PointXYZ>> to_remove_map;
 
+
+
 	int solution_size = 0;
 	int total_pts_removed = 0;
 
@@ -300,13 +302,14 @@ std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> PathPlan
 	}
 
 	//fix viewed points
-
+	cout << "solution index size"<< solution_indx.size() << endl;
+	cout << "solution " << Solution.size() << endl;
 	return Solution;
 
 }
 
 
-void PathPlanner::construct_graph(Polyhedron& poly) {
+void PathPlanner::construct_graph(Polyhedron& poly, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& viewpoints, std::vector<int>& viewpoint_graph_idx) {
 	//track index in graph
 	int index = 0;
 
@@ -319,6 +322,9 @@ void PathPlanner::construct_graph(Polyhedron& poly) {
 
 	//track the index in the gris overall
 	int count = 0;
+	int xx = 0;
+
+	vector<int> found;
 	for (int kk = drone_start_index.z(); kk <= drone_end_index.z(); ++kk)
 	{
 		for (int jj = drone_start_index.y(); jj <= drone_end_index.y(); ++jj)
@@ -328,6 +334,8 @@ void PathPlanner::construct_graph(Polyhedron& poly) {
 				count++;
 				Eigen::Vector3i ijk1(ii, jj, kk);
 				Eigen::Vector4f new_position = voxelGrid.getCentroidCoordinate(ijk1);
+
+				
 
 				//skip if voxel occupied by verticies
 				if (voxelGrid.getCentroidIndexAt(ijk1) != -1) {
@@ -356,6 +364,27 @@ void PathPlanner::construct_graph(Polyhedron& poly) {
 				node->index_int = index;
 
 				index_map.emplace(std::pair<int, int>(count-1, index));
+
+
+				//save indecies of graph where the viewpoints are
+				for (int viewpoint_idx = 0; viewpoint_idx < viewpoints.size(); viewpoint_idx++) {
+					Eigen::Matrix4f pose = viewpoints[viewpoint_idx].first;
+					Eigen::Vector3f viewpoint_pos = pose.block(0, 3, 3, 1);
+
+					//if (std::abs(new_position.x() - viewpoint_pos.x()) < EPSILON && std::abs(new_position.y() - viewpoint_pos.y()) < EPSILON && std::abs(new_position.z() - viewpoint_pos.z()) < EPSILON) {
+					if (new_position.x()== viewpoint_pos.x()  && new_position.y() == viewpoint_pos.y() && new_position.z() == viewpoint_pos.z()) {
+
+						//dont'add the same point twice (only to speed up graph search but there could be more than 1 viewpoint per location so Use Solution to get the entire POSE
+						if (std::find(viewpoint_graph_idx.begin(), viewpoint_graph_idx.end(), index) == viewpoint_graph_idx.end()) {
+							viewpoint_graph_idx.push_back(index);
+							xx++;
+							found.push_back(viewpoint_idx);
+						}
+						//cout << "Found viewpoint to Grid index match: Viewpoint " << viewpoint_idx << " has position " << new_position << endl << " and index " << index << " in the graph." << endl << endl;
+						
+					}
+				}
+
 				//std::cout << "Testing conversion - int to vec: " << convert_int_to_vec(node->index_int, gridSize) << std::endl;
 				//std::cout << "Index_int: " << node->index_int << std::endl;
 				//std::cout << "Position: " << node->position << std::endl<< std::endl << std::endl;
@@ -371,6 +400,7 @@ void PathPlanner::construct_graph(Polyhedron& poly) {
 	}
 
 	std::cout << "NB Nodes in graph: " << graph.nodes.size() << std::endl;
+	std::cout << "NB of Unique viewpoint locations: "<<xx << endl;
 	//std::cout << "loop count: " << count << std::endl;
 
 	//save neighbours --assumin up is +t -- right +z -- front +x
@@ -455,5 +485,60 @@ void PathPlanner::construct_graph(Polyhedron& poly) {
 
 		//add diagnals?
 	}
+
+}
+
+
+
+void combinations_recursive(const vector<int>& elems, unsigned long req_len,
+	vector<unsigned long>& pos, unsigned long depth,
+	unsigned long margin, vector<std::pair<int, int>>& pair_vec)
+{
+	// Have we selected the number of required elements?
+	if (depth >= req_len) {
+		std::pair<int, int> pair(elems[pos[0]], elems[pos[1]]);
+		pair_vec.push_back(pair);
+		return;
+	}
+
+	// Are there enough remaining elements to be selected?
+	// This test isn't required for the function to be correct, but
+	// it can save a good amount of futile function calls.
+	if ((elems.size() - margin) < (req_len - depth))
+		return;
+
+	// Try to select new elements to the right of the last selected one.
+	for (unsigned long ii = margin; ii < elems.size(); ++ii) {
+		pos[depth] = ii;
+		combinations_recursive(elems, req_len, pos, depth + 1, ii + 1, pair_vec);
+	}
+	return;
+}
+
+void combinations(const vector<int>& elems, vector<std::pair<int, int>>& pair_vec)
+{
+	vector<unsigned long> positions(2, 0);
+	combinations_recursive(elems, 2, positions, 0, 0, pair_vec);
+}
+
+
+void PathPlanner::calculate_distances(std::vector<int>& viewpoint_graph_idx) {
+	//get the indecis of the viewpoints in the gris and in the graph
+
+	//key: index of source in the graph
+	// value map:
+			//key: index of destination
+			//value: distance 		
+	std::map<int, std::map<int,int>> distance_map;
+
+	vector<std::pair<int, int>> pair_vec;
+	combinations(viewpoint_graph_idx, pair_vec);
+
+	for (int i = 0; i < pair_vec.size(); i++)
+	{
+		cout << "PAIR: " << pair_vec[i].first << ", " << pair_vec[i].second << endl;
+	}
+	cout << "nb pairs" << pair_vec.size() << endl;
+
 
 }

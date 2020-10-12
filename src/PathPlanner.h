@@ -45,7 +45,12 @@ public:
     std::pair<int, std::vector<pcl::PointXYZ> > calc_nb_intersection( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointCloud<pcl::PointXYZ>& seen_points);
     bool delete_point(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointXYZ point);
 
-    //provide poly to check if point inside of it
-    void construct_graph(Polyhedron& poly);
+    /// <summary>
+    /// Graph routines
+    /// </summary>
+    /// <param name="poly"></param>
+    void construct_graph(Polyhedron& poly, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& viewpoints, std::vector<int>& viewpoint_graph_idx);
+    void calculate_distances(std::vector<int>& viewpoint_graph_idx);
+    void calculate_pair_distance(std::vector<int>& viewpoint_graph_idx);
 };
 
