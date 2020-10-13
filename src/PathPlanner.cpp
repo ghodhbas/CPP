@@ -378,7 +378,7 @@ void PathPlanner::construct_graph(Polyhedron& poly, std::vector<std::pair<Eigen:
 						if (std::find(viewpoint_graph_idx.begin(), viewpoint_graph_idx.end(), index) == viewpoint_graph_idx.end()) {
 							viewpoint_graph_idx.push_back(index);
 							xx++;
-							found.push_back(viewpoint_idx);
+							//found.push_back(viewpoint_idx);
 						}
 						//cout << "Found viewpoint to Grid index match: Viewpoint " << viewpoint_idx << " has position " << new_position << endl << " and index " << index << " in the graph." << endl << endl;
 						
@@ -400,7 +400,7 @@ void PathPlanner::construct_graph(Polyhedron& poly, std::vector<std::pair<Eigen:
 	}
 
 	std::cout << "NB Nodes in graph: " << graph.nodes.size() << std::endl;
-	std::cout << "NB of Unique viewpoint locations: "<<xx << endl;
+	std::cout << "NB of Unique viewpoint locations: "<<xx << endl<<endl;
 	//std::cout << "loop count: " << count << std::endl;
 
 	//save neighbours --assumin up is +t -- right +z -- front +x
@@ -521,24 +521,72 @@ void combinations(const vector<int>& elems, vector<std::pair<int, int>>& pair_ve
 	combinations_recursive(elems, 2, positions, 0, 0, pair_vec);
 }
 
+int PathPlanner::calculate_shortest_distance(int index_1, int index_2) {
+	//intialiaze all nodes to not visited
+	for (int i = 0; i < graph.size(); i++)
+	{
+		graph[i]->visited = false;
+	}
 
-void PathPlanner::calculate_distances(std::vector<int>& viewpoint_graph_idx) {
+	//stores the distance to the ith index in the graph -- intialize
+	std:vector<int> distances;
+	for (int i = 0; i < graph.size(); i++) {
+		if (i == index_1) distances.push_back(0);
+		else distances.push_back(INT_MAX-2);
+	}
+	
+	std::queue<Node*> queue;
+	queue.push(graph[index_1]);
+
+	while (!queue.empty())
+	{
+		Node* node = queue.front();
+		queue.pop();
+		//found goal destination 
+		if (node->index_int == index_2) break;
+
+		node->visited = true;
+
+		for (int i = 0; i < node->neighbours.size(); i++) {
+			Node* neighbour = node->neighbours[i];
+			if (neighbour->visited) {
+				continue;
+			}
+			//update distance
+			if (distances[neighbour->index_int] > distances[node->index_int] + 1) {
+				distances[neighbour->index_int] = distances[node->index_int] + 1;
+				queue.push(neighbour);
+			}
+
+		}
+	}
+	
+	return distances[index_2];
+}
+
+
+std::map<int, std::map<int, int>> PathPlanner::calculate_distances(std::vector<int>& viewpoint_graph_idx, vector<std::pair<int, int>> pair_vec ) {
 	//get the indecis of the viewpoints in the gris and in the graph
 
 	//key: index of source in the graph
-	// value map:
-			//key: index of destination
-			//value: distance 		
-	std::map<int, std::map<int,int>> distance_map;
+	// value map: distance to other cells in the graph	
+	std::map<int,std::map<int,int>> distance_map;
 
-	vector<std::pair<int, int>> pair_vec;
+	
 	combinations(viewpoint_graph_idx, pair_vec);
 
 	for (int i = 0; i < pair_vec.size(); i++)
 	{
 		cout << "PAIR: " << pair_vec[i].first << ", " << pair_vec[i].second << endl;
+		int distance = calculate_shortest_distance(pair_vec[i].first, pair_vec[i].second);
+		cout << "Shortest distance = " << distance << endl << endl;
+
+		//save distance from one cell to the other
+		distance_map[pair_vec[i].first][pair_vec[i].second] = distance;
+		distance_map[pair_vec[i].second][pair_vec[i].first] = distance;
+
 	}
-	cout << "nb pairs" << pair_vec.size() << endl;
+	cout << "nb pairs: " << pair_vec.size() << endl<<endl;
 
-
+	return distance_map;
 }

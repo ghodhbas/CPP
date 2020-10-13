@@ -1,6 +1,7 @@
 #pragma once
 #include "Occlusion_Culling.h"
 #include <vector>
+#include <queue>
 
 #include "MyMesh.h"
 #include "graph.hpp"
@@ -50,7 +51,7 @@ public:
     /// </summary>
     /// <param name="poly"></param>
     void construct_graph(Polyhedron& poly, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& viewpoints, std::vector<int>& viewpoint_graph_idx);
-    void calculate_distances(std::vector<int>& viewpoint_graph_idx);
-    void calculate_pair_distance(std::vector<int>& viewpoint_graph_idx);
+    std::map<int, std::map<int, int>> calculate_distances(std::vector<int>& viewpoint_graph_idx, vector<std::pair<int, int>> pair_vec);
+    int calculate_shortest_distance(int index_1, int index_2);
 };
 

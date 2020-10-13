@@ -66,7 +66,9 @@ int main(int argc, char* argv[])
     //saves the indices withion the graph where the viewpoints are located
     std::vector<int> viewpoint_graph_idx;
     pp.construct_graph(poly, Solution, viewpoint_graph_idx);
-    pp.calculate_distances(viewpoint_graph_idx);
+    //construct all the pairs from the viewpoints and calculate the distances between them
+    vector<std::pair<int, int>> pair_vec;
+    std::map<int, std::map<int, int>> distance_map  =  pp.calculate_distances(viewpoint_graph_idx, pair_vec);
 
 
 
