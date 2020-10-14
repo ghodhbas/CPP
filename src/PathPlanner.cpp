@@ -11,7 +11,7 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	drone = new UAV();
 
 	//create voxel grid of the point cloud
-	voxelRes = 3.f;
+	voxelRes = 1.5f;
 	voxelGrid.setInputCloud(input_cloud);
 	voxelGrid.setLeafSize(voxelRes, voxelRes, voxelRes);
 	voxelGrid.initializeVoxelGrid();
@@ -69,8 +69,8 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	std::cout << "In Path Planner -  Grid Size (with padding): " << gridSize[0] << ", " << gridSize[1] << ", " << gridSize[2] << std::endl;
 	std::cout << "Drone start index: " << drone_start_index << std::endl;
 	std::cout << "Drone end index: " << drone_end_index << std::endl;
-	std::cout << "Drone start : " << drone_start << std::endl;
-	std::cout << "Drone end : " << drone_end << std::endl;
+	std::cout << "Drone start coordinates: " << drone_start << std::endl;
+	std::cout << "Drone end coordinates: " << drone_end << std::endl;
 	
 	
 	BB_start_index[0] = min_b_idx[0] ;//5
@@ -134,8 +134,8 @@ std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> PathPlan
 		}
 	}
 
-	std::cout << "nb occupied: " << i << std::endl;
-	std::cout << "nb Padding: " << nb_padding << std::endl;
+	std::cout << "number of occupied voxels: " << i << std::endl;
+	std::cout << "number Padding voxels: " << nb_padding << std::endl;
 	return map;
 }
 
@@ -565,7 +565,7 @@ int PathPlanner::calculate_shortest_distance(int index_1, int index_2) {
 }
 
 
-std::map<int, std::map<int, int>> PathPlanner::calculate_distances(std::vector<int>& viewpoint_graph_idx, vector<std::pair<int, int>> pair_vec ) {
+std::map<int, std::map<int, int>> PathPlanner::calculate_distances(std::vector<int>& viewpoint_graph_idx, vector<std::pair<int, int>>& pair_vec ) {
 	//get the indecis of the viewpoints in the gris and in the graph
 
 	//key: index of source in the graph
@@ -577,9 +577,9 @@ std::map<int, std::map<int, int>> PathPlanner::calculate_distances(std::vector<i
 
 	for (int i = 0; i < pair_vec.size(); i++)
 	{
-		cout << "PAIR: " << pair_vec[i].first << ", " << pair_vec[i].second << endl;
+		//cout << "PAIR: " << pair_vec[i].first << ", " << pair_vec[i].second << endl;
 		int distance = calculate_shortest_distance(pair_vec[i].first, pair_vec[i].second);
-		cout << "Shortest distance = " << distance << endl << endl;
+		//cout << "Shortest distance = " << distance << endl << endl;
 
 		//save distance from one cell to the other
 		distance_map[pair_vec[i].first][pair_vec[i].second] = distance;
@@ -588,5 +588,50 @@ std::map<int, std::map<int, int>> PathPlanner::calculate_distances(std::vector<i
 	}
 	cout << "nb pairs: " << pair_vec.size() << endl<<endl;
 
+
+	//distance map can also be seen as an edge map with duplicates
 	return distance_map;
+}
+
+
+
+//kruskal MST --	1. Sort all the edges in non-decreasing order of their weight.
+				  //2. Pick the smallest edge.Check if it forms a cycle with the spanning tree formed so far.If cycle is not formed, include this edge.Else, discard it.
+				  //3. Repeat step#2 until there are(V - 1) edges in the spanning tree.
+Edge_Graph PathPlanner::construct_MST(vector<std::pair<int, int>>& pair_vec, std::map<int, std::map<int, int>>& distance_map) {
+	//spanning tree
+	Edge_Graph MST = Edge_Graph(distance_map.size());
+	
+	//construct complete edge graph that will be the input for the MST
+	//V nb of nodes, E = V(V-1)/2
+	Edge_Graph e_graph = Edge_Graph(distance_map.size());
+
+	// TO DO -- chaneg this to insert in corrrect order for speedup
+	//add edges to the graph
+	for (int i = 0; i < pair_vec.size(); i++)
+	{	
+		e_graph.add_edge(pair_vec[i].first, pair_vec[i].second, distance_map[pair_vec[i].first][pair_vec[i].second] );
+		
+	}
+	//sort edges longfest to shortest
+	std::sort(e_graph.edges.begin(), e_graph.edges.end(), Edge_Comparator());
+
+	int idx = e_graph.edges.size() - 1;
+	while (MST.edges.size() < (distance_map.size() -1)) {
+		Edge e = e_graph.edges[idx];
+
+		//temporary graph to test if adding the edge creates a cycle
+		Edge_Graph tmp = Edge_Graph(MST);
+		tmp.add_edge(e);
+
+		//test if cycle is not created -- this can be optimized by incorporating subset and union here instead of contructing it every time in is cycle
+		if (!isCycle(tmp)) {
+			//add the edge to the MST
+			MST.add_edge(e);
+		}
+
+		idx--;
+	}
+
+	return MST;
 }

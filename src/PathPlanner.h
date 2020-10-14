@@ -1,10 +1,9 @@
 #pragma once
 #include "Occlusion_Culling.h"
 #include <vector>
-#include <queue>
 
 #include "MyMesh.h"
-#include "graph.hpp"
+#include "graph.h"
 #define EPSILON 0.000001f
 
 class PathPlanner
@@ -51,7 +50,9 @@ public:
     /// </summary>
     /// <param name="poly"></param>
     void construct_graph(Polyhedron& poly, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& viewpoints, std::vector<int>& viewpoint_graph_idx);
-    std::map<int, std::map<int, int>> calculate_distances(std::vector<int>& viewpoint_graph_idx, vector<std::pair<int, int>> pair_vec);
+    std::map<int, std::map<int, int>> calculate_distances(std::vector<int>& viewpoint_graph_idx, vector<std::pair<int, int>>& pair_vec);
     int calculate_shortest_distance(int index_1, int index_2);
+
+    Edge_Graph construct_MST(vector<std::pair<int, int>>& pair_vec, std::map<int, std::map<int, int>>& distance_map);
 };
 
