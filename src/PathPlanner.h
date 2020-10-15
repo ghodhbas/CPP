@@ -54,5 +54,7 @@ public:
     int calculate_shortest_distance(int index_1, int index_2);
 
     Edge_Graph construct_MST(vector<std::pair<int, int>>& pair_vec, std::map<int, std::map<int, int>>& distance_map);
+
+    vector<Eigen::Vector3f> generate_path(Edge_Graph& MST);
 };
 

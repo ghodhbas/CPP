@@ -11,7 +11,7 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	drone = new UAV();
 
 	//create voxel grid of the point cloud
-	voxelRes = 1.5f;
+	voxelRes = 3.f;
 	voxelGrid.setInputCloud(input_cloud);
 	voxelGrid.setLeafSize(voxelRes, voxelRes, voxelRes);
 	voxelGrid.initializeVoxelGrid();
@@ -634,4 +634,65 @@ Edge_Graph PathPlanner::construct_MST(vector<std::pair<int, int>>& pair_vec, std
 	}
 
 	return MST;
+}
+
+
+void DFS(vector<Eigen::Vector3f>& path, Node* node) {
+	node->visited = true;
+	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
+	path.push_back(position);
+	for (size_t i = 0; i < node->neighbours.size(); i++)
+	{
+		if (!node->neighbours[i]->visited) DFS(path, node->neighbours[i]);
+	}
+}
+
+vector<Eigen::Vector3f> PathPlanner::generate_path(Edge_Graph& MST) {
+	//construct vertex based graph from MST
+	Graph MST_g;
+
+	//map index of node to the index in the MST_g
+	std::map<int, int> map_gidx_idx;
+	//pick vertex with lowest  y value(closest to ground)
+	for (size_t i = 0; i < MST.node_idx.size(); i++)
+	{	
+		int index = MST.node_idx[i];
+		Node* n = new Node(*graph.nodes[index]);
+		n->neighbours.clear();
+		n->visited = false;
+		MST_g.add_node(n);
+		
+		map_gidx_idx[n->index_int] = i;
+		
+	}
+
+
+	Node* chosen = MST_g.nodes[0];
+	//save smalled index;
+	for (size_t i = 1; i < MST_g.nodes.size(); i++)
+	{	
+		Node* n = MST_g.nodes[i];
+		if (chosen->position.z() > n->position.z()) chosen = n;
+	}
+
+	//save neighbour;
+	for (size_t i = 0; i < MST.edges.size(); i++)
+	{
+		Edge e = MST.edges[i];
+		int src = e.src;
+		int dst = e.dest;
+
+		Node* src_n = MST_g.nodes[map_gidx_idx[src]];
+		Node* dst_n = MST_g.nodes[map_gidx_idx[dst]];
+
+		src_n->neighbours.push_back(dst_n);
+		dst_n->neighbours.push_back(src_n);
+	}
+
+	//vector<int> path;
+	vector< Eigen::Vector3f> path;
+
+	DFS(path, chosen);
+
+	return path;
 }

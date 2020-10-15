@@ -37,6 +37,9 @@ namespace IO {
 
     void write_PLY(std::string filename, std::vector< Kernel::Point_3> points);
 
+    //save path
+    void write_PLY(std::string filename, vector< Eigen::Vector3f> path);
+
     void write_OFF(std::string filename, SurfaceMesh& surface);
 
 }

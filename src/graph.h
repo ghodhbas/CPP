@@ -15,6 +15,17 @@ public:
 	int index_int;
 
 	bool visited = false;
+
+	Node() {
+	}
+
+	Node(const Node& n) {
+		neighbours = n.neighbours;
+		position = n.position;
+		index_vec = n.index_vec;
+		index_grid = n.index_grid;
+		index_int = n.index_int;
+	}
 };
 
 

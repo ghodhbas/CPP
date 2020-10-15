@@ -84,6 +84,9 @@ int main(int argc, char* argv[])
     Edge_Graph MST = pp.construct_MST(pair_vec, distance_map);
     cout << "MST CONSTRUCTED" << endl<<endl;
 
+    vector<Eigen::Vector3f > path = pp.generate_path(MST);
+    IO::write_PLY(argv[4], path);
+
 
    ///color visible surface
    // MyMesh::color_visible_surface(visible_s, surface);
