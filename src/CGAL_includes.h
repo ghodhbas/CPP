@@ -14,6 +14,7 @@
 #include <CGAL/property_map.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
 #include <CGAL/Side_of_triangle_mesh.h>
+#include <CGAL/Polygon_mesh_processing/compute_normal.h>
 
 //IO
 //#include <CGAL/IO/Polyhedron_iostream.h>
@@ -45,5 +46,8 @@ typedef CGAL::Nth_of_tuple_property_map<1, PCI> Color_map;
 
 //descriptors
 
-typedef boost::graph_traits<SurfaceMesh>::vertex_descriptor vertex_descriptor;
-typedef boost::graph_traits<SurfaceMesh>::face_descriptor face_descriptor;
+typedef boost::graph_traits<SurfaceMesh>::vertex_descriptor surface_vertex_descriptor;
+typedef boost::graph_traits<SurfaceMesh>::face_descriptor surface_face_descriptor;
+typedef boost::graph_traits<Polyhedron>::vertex_descriptor poly_vertex_descriptor;
+typedef boost::graph_traits<Polyhedron>::face_descriptor   poly_face_descriptor;
+typedef Polyhedron::Vertex_iterator        poly_vertex_iterator;

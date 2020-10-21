@@ -6,29 +6,15 @@
 #include <ctime>
 #include "PathPlanner.h"
 #include "IO.h"
+#include "LayeredPP.h"
 
-
-int main(int argc, char* argv[])
-{
-    Polyhedron poly;
-    SurfaceMesh surface;
-
-
-
-    //set up MEesh
-    IO::import_OFF_file(poly, surface, argv[1]);
-    //import_OBJ_file(m, "plane.obj");
-    if (poly.is_empty() && surface.is_empty()) return 1;
-    //MyMesh::print_mesh_info(m);
-
+/* METHOD 1: Set cover + TSP  */
+void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     //make point cloud from vertices
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
     MyMesh::convert_to_pointcloud(surface, cloud);
-    cout << "Number of points in the Point cloud: " << cloud->points.size() << endl<<endl;
-    
-    //MyMesh::segment_mesh(surface);
+    cout << "Number of points in the Point cloud: " << cloud->points.size() << endl << endl;
 
-    /*--------------------------------             START FINDING PATH ALGORITHM    ---------------------          */
     cout << "Path Planning Intialization..." << endl;
     PathPlanner pp(cloud);
     cout << "Path Planning Intialization Complete" <<endl<< endl;
@@ -91,6 +77,63 @@ int main(int argc, char* argv[])
    ///color visible surface
    // MyMesh::color_visible_surface(visible_s, surface);
    // write_PLY(argv[2], surface);
+}
+
+int main(int argc, char* argv[])
+{
+    Polyhedron poly;
+    SurfaceMesh surface;
+
+    //set up MEesh
+    IO::import_OFF_file(poly, surface, argv[1]);
+    //import_OBJ_file(m, "plane.obj");
+    if (poly.is_empty() && surface.is_empty()) return 1;
+    //MyMesh::print_mesh_info(m);
+    
+    //MyMesh::segment_mesh(surface);
+
+    /*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
+    //method_1(poly, surface,  argv)
+   
+
+    /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
+    LayeredPP lpp(1.f);
+
+    // Step 1 calculate per vertex normals
+    std::map<poly_vertex_descriptor, Vector> vnormals;
+    CGAL::Polygon_mesh_processing::compute_vertex_normals(poly, boost::make_assoc_property_map(vnormals));
+
+    
+    //Step 2: convert surface mesh into point cloud that has normals -- and calculate bbbox limits
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+    std::pair<pcl::PointXYZ, pcl::PointXYZ>  min_max = MyMesh::convert_to_pointcloud(poly, cloud, vnormals);
+    //cout << "MIN POINT" << min_max.first << endl << endl;
+    //cout << "Max POINT" << min_max.second << endl<<  endl;
+
+    //Step 3: slice the point cloud into different layers using height cutoff  ------ we are choosing here y as the height and we are spliitng using heights
+    int nb_layers = 5;
+    vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layers = lpp.construct_layers(cloud, nb_layers, min_max);    
+    
+    //Step 4: Voxelize every layer
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> voxel_layers = lpp.voxelize_layers(layers);
+
+    //step 5: generate viewpoints for every layer using the normal estimation
+
+
+    //step 6: solve TSP on every layer
+
+
+    //step 7: link solutions into 1 path
+
+
+
+
+
+
+
+
+
+
 
    return EXIT_SUCCESS;
 }

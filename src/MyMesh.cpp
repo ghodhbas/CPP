@@ -168,16 +168,16 @@ namespace MyMesh {
     void segment_mesh(SurfaceMesh surface) {
 
         std::vector<SurfaceMesh*> segments_vec;
-        typedef SurfaceMesh::Property_map<face_descriptor, double> Facet_double_map;
+        typedef SurfaceMesh::Property_map<surface_face_descriptor, double> Facet_double_map;
         Facet_double_map sdf_property_map;
-        sdf_property_map = surface.add_property_map<face_descriptor, double>("f:sdf").first;
+        sdf_property_map = surface.add_property_map<surface_face_descriptor, double>("f:sdf").first;
         // compute SDF values
             // We can't use default parameters for number of rays, and cone angle
             // and the postprocessing
         CGAL::sdf_values(surface, sdf_property_map, 2.0 / 3.0 * CGAL_PI, 10, true);
         // create a property-map for segment-ids
-        typedef SurfaceMesh::Property_map<face_descriptor, std::size_t> Facet_int_map;
-        Facet_int_map segment_property_map = surface.add_property_map<face_descriptor, std::size_t>("f:sid").first;;
+        typedef SurfaceMesh::Property_map<surface_face_descriptor, std::size_t> Facet_int_map;
+        Facet_int_map segment_property_map = surface.add_property_map<surface_face_descriptor, std::size_t>("f:sid").first;;
         const std::size_t number_of_clusters = 4;       // use 4 clusters in soft clustering
         const double smoothing_lambda = 0.4;  // importance of surface features, suggested to be in-between [0,1]
         // Note that we can use the same SDF values (sdf_property_map) over and over again for segmentation.
@@ -201,7 +201,7 @@ namespace MyMesh {
             // create a color property map
             SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, CGAL::Color > c;
             bool created;
-            boost::tie(c, created) = out->add_property_map<vertex_descriptor, CGAL::Color>("v:color", CGAL::Color::Color());
+            boost::tie(c, created) = out->add_property_map<surface_vertex_descriptor, CGAL::Color>("v:color", CGAL::Color::Color());
             assert(created);
             color_surface(*out, 0, 250, 0, 250);
 
@@ -233,6 +233,28 @@ namespace MyMesh {
         }
     }
 
+
+    std::pair<pcl::PointXYZ, pcl::PointXYZ>  convert_to_pointcloud(Polyhedron& poly, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, std::map<poly_vertex_descriptor, Vector>& vnormals) {
+        pcl::PointXYZ max = pcl::PointXYZ(-999999999.f, -999999999.f, -999999999.f);
+        pcl::PointXYZ min = pcl::PointXYZ(999999999.f, 999999999.f, 999999999.f);
+        for (poly_vertex_iterator v = poly.vertices_begin(); v != poly.vertices_end(); ++v) {   
+            
+            pcl::PointNormal point = pcl::PointNormal(v->point().x(), v->point().y(), v->point().z(), vnormals[v].x(), vnormals[v].y(), vnormals[v].z());
+
+            cloud->push_back(point);
+
+            //update max and min points
+            if (point.x > max.x) max.x = point.x;
+            if (point.y > max.y) max.y = point.y;
+            if (point.z > max.z) max.z = point.z;
+
+            if (point.x < min.x) min.x = point.x;
+            if (point.y < min.y) min.y = point.y;
+            if (point.z < min.z) min.z = point.z;
+        }
+
+        return std::pair<pcl::PointXYZ, pcl::PointXYZ>(min, max);
+    }
 
     double max_coordinate(const Polyhedron& poly)
     {
