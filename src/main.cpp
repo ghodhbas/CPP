@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
    
 
     /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    LayeredPP lpp(1.f);
+    LayeredPP lpp( 0.3f, 2.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -115,24 +115,48 @@ int main(int argc, char* argv[])
     vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layers = lpp.construct_layers(cloud, nb_layers, min_max);    
     
     //Step 4: Voxelize every layer
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> voxel_layers = lpp.voxelize_layers(layers);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> voxel_layers = lpp.voxelize_layers(layers, 3.f);
 
     //step 5: generate viewpoints for every layer using the normal estimation
+    
+        //vector containing  the viewpoints in a lyaer: Pair<position, look dir>
+    typedef std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>  Viewpoints;
+    vector<Viewpoints> layer_viewpoints;
+    for (size_t i = 0; i < voxel_layers.size(); i++)
+    {
+        //construct list of viewpoints  for that layer
+        Viewpoints v = lpp.generate_viewpoints(voxel_layers[i]);
+
+        layer_viewpoints.push_back(v);
+    }
+
+        //sanity check output points
+        //lpp.output_viewpoints(layer_viewpoints);
+
+             //step 6: Downsample the viewpoints for each layer if need -- voxelize  all viewpoints and build layers again
+
+    //step 7: solve TSP on every layer
+
+    for (size_t i = 0; i < layer_viewpoints.size(); i++)
+    {
+        //construct list of viewpoints  for that layer
+        Viewpoints layer = layer_viewpoints[i];
+        vector<std::pair<int, int>> pair_vec;
+        std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec );
+        //cout << "Constructing Minimun Spanning tree between solution viewpoints..." << endl;
+        Edge_Graph MST = lpp.construct_MST(pair_vec, distance_map);
+        //cout << "MST CONSTRUCTED" << endl << endl;
+        vector<Eigen::Vector3f > path = lpp.generate_path(MST, layer);
+        IO::write_PLY(argv[4], path);
+        cout << "path done" << endl;
+        break;
 
 
-    //step 6: solve TSP on every layer
+        //pick the closes point to the last point in the previous path as a start point for solving the MST
+    }
 
 
-    //step 7: link solutions into 1 path
-
-
-
-
-
-
-
-
-
+    //step 8: link solutions into 1 path
 
 
    return EXIT_SUCCESS;

@@ -58,9 +58,10 @@ static int convert_vec_to_int(Eigen::Vector3i vec, Eigen::Vector3i gridSize) {
 //------------------------------------------------EDGE BASED GRAPH----------------------------------------/
 class Edge {
 public:
-	int src, dest, weight;
+	int src, dest;
+	float weight;
 
-	Edge(int s, int d, int w) { 
+	Edge(int s, int d, float w) { 
 		src = s; 
 		dest = d;
 		weight = w;
@@ -96,8 +97,8 @@ public:
 		}
 	}
 
-	void add_edge(int src, int dst, int w) {
-		edges.push_back(Edge(src, dst,w ));
+	void add_edge(int src, int dst, float w) {
+		edges.push_back(Edge(src, dst, w ));
 		if (std::find(node_idx.begin(), node_idx.end(), src) == node_idx.end()) node_idx.push_back(src);
 		if (std::find(node_idx.begin(), node_idx.end(), dst) == node_idx.end()) node_idx.push_back(dst);
 	}

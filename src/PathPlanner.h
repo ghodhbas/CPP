@@ -14,6 +14,12 @@ class PathPlanner
     // before storing and observed point/vertex the direction of the frustum/UAV needs to be relatively in the opposite direction of the normal
 
 private:
+    void combinations_recursive(const vector<int>& elems, unsigned long req_len,
+        vector<unsigned long>& pos, unsigned long depth,
+        unsigned long margin, vector<std::pair<int, int>>& pair_vec);
+    void combinations(const vector<int>& elems, vector<std::pair<int, int>>& pair_vec);
+    void DFS(vector<Eigen::Vector3f>& path, Node* node);
+
     OcclusionCulling* OC;
     UAV* drone;
 

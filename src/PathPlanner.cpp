@@ -490,7 +490,7 @@ void PathPlanner::construct_graph(Polyhedron& poly, std::vector<std::pair<Eigen:
 
 
 
-void combinations_recursive(const vector<int>& elems, unsigned long req_len,
+void PathPlanner::combinations_recursive(const vector<int>& elems, unsigned long req_len,
 	vector<unsigned long>& pos, unsigned long depth,
 	unsigned long margin, vector<std::pair<int, int>>& pair_vec)
 {
@@ -515,7 +515,7 @@ void combinations_recursive(const vector<int>& elems, unsigned long req_len,
 	return;
 }
 
-void combinations(const vector<int>& elems, vector<std::pair<int, int>>& pair_vec)
+void PathPlanner::combinations(const vector<int>& elems, vector<std::pair<int, int>>& pair_vec)
 {
 	vector<unsigned long> positions(2, 0);
 	combinations_recursive(elems, 2, positions, 0, 0, pair_vec);
@@ -637,7 +637,7 @@ Edge_Graph PathPlanner::construct_MST(vector<std::pair<int, int>>& pair_vec, std
 }
 
 
-void DFS(vector<Eigen::Vector3f>& path, Node* node) {
+void PathPlanner::DFS(vector<Eigen::Vector3f>& path, Node* node) {
 	node->visited = true;
 	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
 	path.push_back(position);
