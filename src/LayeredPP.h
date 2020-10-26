@@ -12,7 +12,11 @@ public:
 
 	vector< pcl::PointCloud<pcl::PointNormal>::Ptr> construct_layers(pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, const int nb_layers, const std::pair<pcl::PointXYZ, pcl::PointXYZ>  min_max);
 	vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> voxelize_layers(vector< pcl::PointCloud<pcl::PointNormal>::Ptr>& layers, float voxelRes);
+	pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> voxelize(pcl::PointCloud<pcl::PointNormal>::Ptr&  cloud, float voxelRes);
+
+
 	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> generate_viewpoints(pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> layer);
+	
 
 	std::map<int, std::map<int, float>>  calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>&  viewpoints, vector<std::pair<int, int>>& pair_vec);
 

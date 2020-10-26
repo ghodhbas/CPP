@@ -234,15 +234,23 @@ namespace MyMesh {
     }
 
 
-    std::pair<pcl::PointXYZ, pcl::PointXYZ>  convert_to_pointcloud(Polyhedron& poly, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, std::map<poly_vertex_descriptor, Vector>& vnormals) {
-        pcl::PointXYZ max = pcl::PointXYZ(-999999999.f, -999999999.f, -999999999.f);
-        pcl::PointXYZ min = pcl::PointXYZ(999999999.f, 999999999.f, 999999999.f);
+    void convert_to_pointcloud(Polyhedron& poly, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, std::map<poly_vertex_descriptor, Vector>& vnormals) {
         for (poly_vertex_iterator v = poly.vertices_begin(); v != poly.vertices_end(); ++v) {   
             
             pcl::PointNormal point = pcl::PointNormal(v->point().x(), v->point().y(), v->point().z(), vnormals[v].x(), vnormals[v].y(), vnormals[v].z());
 
             cloud->push_back(point);
+        }
+    }
 
+
+    std::pair<pcl::PointXYZ, pcl::PointXYZ> get_cloud_BBOX(pcl::PointCloud<pcl::PointNormal>::Ptr& cloud) {
+        pcl::PointXYZ max = pcl::PointXYZ(-999999999.f, -999999999.f, -999999999.f);
+        pcl::PointXYZ min = pcl::PointXYZ(999999999.f, 999999999.f, 999999999.f);
+       
+        for (int i = 0; i < cloud->points.size();i++) {
+
+            pcl::PointNormal point = cloud->at(i);
             //update max and min points
             if (point.x > max.x) max.x = point.x;
             if (point.y > max.y) max.y = point.y;
@@ -255,6 +263,7 @@ namespace MyMesh {
 
         return std::pair<pcl::PointXYZ, pcl::PointXYZ>(min, max);
     }
+
 
     double max_coordinate(const Polyhedron& poly)
     {

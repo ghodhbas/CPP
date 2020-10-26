@@ -97,66 +97,93 @@ int main(int argc, char* argv[])
    
 
     /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    LayeredPP lpp( 0.3f, 2.f);
+    LayeredPP lpp( 0.3f, 3.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
     CGAL::Polygon_mesh_processing::compute_vertex_normals(poly, boost::make_assoc_property_map(vnormals));
 
     
-    //Step 2: convert surface mesh into point cloud that has normals -- and calculate bbbox limits
+    //Step 2: convert surface mesh into point cloud that has normals 
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
-    std::pair<pcl::PointXYZ, pcl::PointXYZ>  min_max = MyMesh::convert_to_pointcloud(poly, cloud, vnormals);
+    MyMesh::convert_to_pointcloud(poly, cloud, vnormals);
+
     //cout << "MIN POINT" << min_max.first << endl << endl;
     //cout << "Max POINT" << min_max.second << endl<<  endl;
 
-    //Step 3: slice the point cloud into different layers using height cutoff  ------ we are choosing here y as the height and we are spliitng using heights
-    int nb_layers = 5;
-    vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layers = lpp.construct_layers(cloud, nb_layers, min_max);    
-    
-    //Step 4: Voxelize every layer
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> voxel_layers = lpp.voxelize_layers(layers, 3.f);
-
-    //step 5: generate viewpoints for every layer using the normal estimation
-    
-        //vector containing  the viewpoints in a lyaer: Pair<position, look dir>
+    //Step 3: voxalize the whole cloud and get cloud
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 1.f);
+    //generate viewpoints from mesh grid and make them into a filtered point cloud
     typedef std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>  Viewpoints;
-    vector<Viewpoints> layer_viewpoints;
-    for (size_t i = 0; i < voxel_layers.size(); i++)
-    {
-        //construct list of viewpoints  for that layer
-        Viewpoints v = lpp.generate_viewpoints(voxel_layers[i]);
+    Viewpoints viewpoints = lpp.generate_viewpoints(mesh_voxelgrid);
+    pcl::PointCloud<pcl::PointNormal>::Ptr viewpoints_cloud= pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+    for (size_t i = 0; i < viewpoints.size(); i++)
+    {   
+        
+        pcl::PointNormal point = pcl::PointNormal(viewpoints.at(i).first[0], viewpoints.at(i).first[1], viewpoints.at(i).first[2], viewpoints.at(i).second[0], viewpoints.at(i).second[1], viewpoints.at(i).second[2]);
+        viewpoints_cloud->push_back(point);
+    }
+    //calculate BBox of cloud
+    std::pair<pcl::PointXYZ, pcl::PointXYZ>  min_max = MyMesh::get_cloud_BBOX(viewpoints_cloud);
 
-        layer_viewpoints.push_back(v);
+
+
+    //Step 4: split the  viewpoints into layers
+    int nb_layers = 6;
+    vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(viewpoints_cloud, nb_layers, min_max);
+
+
+
+    //Step 5: Voxelize every layer of viewpoints and make input for TSP
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 3.f);
+    vector<Viewpoints> downsampled_viewpoints_perlayer;
+    for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
+        pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr( new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
+        //pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> voxel_layer = viewpoints_voxel_layers[i];
+        Viewpoints layer;
+        for (size_t j = 0; j < filtered_layer_cloud->points.size(); j++)
+        {
+            pcl::PointNormal point = filtered_layer_cloud->at(j);
+            //std::pair<Eigen::Vector3f, Eigen::Vector3f> tmp = std::pair< Eigen::Vector3f, Eigen::Vector3f>(Eigen::Vector3f(point.x, point.y, point.z), Eigen::Vector3f(point.normal_x, point.normal_y, point.normal_z));
+            layer.push_back(std::pair< Eigen::Vector3f, Eigen::Vector3f>(Eigen::Vector3f(point.x, point.y, point.z), Eigen::Vector3f(point.normal_x, point.normal_y, point.normal_z)));
+        }
+        //layer_viewpoints.push_back(layer);
+        downsampled_viewpoints_perlayer.push_back(layer);
     }
 
-        //sanity check output points
-        //lpp.output_viewpoints(layer_viewpoints);
 
-             //step 6: Downsample the viewpoints for each layer if need -- voxelize  all viewpoints and build layers again
-
-    //step 7: solve TSP on every layer
-
-    for (size_t i = 0; i < layer_viewpoints.size(); i++)
+    // step 7: solve TSP on every layer
+    vector< vector<Eigen::Vector3f >> paths_list;
+    for (size_t i = 0; i < downsampled_viewpoints_perlayer.size(); i++)
     {
         //construct list of viewpoints  for that layer
-        Viewpoints layer = layer_viewpoints[i];
+        Viewpoints layer = downsampled_viewpoints_perlayer[i];
         vector<std::pair<int, int>> pair_vec;
         std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec );
         //cout << "Constructing Minimun Spanning tree between solution viewpoints..." << endl;
         Edge_Graph MST = lpp.construct_MST(pair_vec, distance_map);
         //cout << "MST CONSTRUCTED" << endl << endl;
         vector<Eigen::Vector3f > path = lpp.generate_path(MST, layer);
-        IO::write_PLY(argv[4], path);
-        cout << "path done" << endl;
-        break;
-
-
+        //IO::write_PLY(argv[4], path);
+        //cout << "path done" << endl;
         //pick the closes point to the last point in the previous path as a start point for solving the MST
+        paths_list.push_back(path);
     }
 
 
     //step 8: link solutions into 1 path
+    vector<Eigen::Vector3f > result;
+    for (size_t i = 0; i < paths_list.size(); i++)
+    {   
+        vector<Eigen::Vector3f> path = paths_list[i];
+        for (size_t j = 0; j < path.size(); j++)
+        {
+            result.push_back(path[j]);
+        }
+    }
+
+    IO::write_PLY(argv[4], result);
+    cout << "path done" << endl;
 
 
    return EXIT_SUCCESS;

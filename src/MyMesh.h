@@ -26,7 +26,9 @@ namespace MyMesh {
    void convert_to_pointcloud(SurfaceMesh& surface, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
   
    //constructs point clound and returns the max and min values for all points (can be used for bounding box)
-   std::pair<pcl::PointXYZ, pcl::PointXYZ>  convert_to_pointcloud(Polyhedron& poly, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, std::map<poly_vertex_descriptor, Vector>& vnormals);
+   void  convert_to_pointcloud(Polyhedron& poly, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, std::map<poly_vertex_descriptor, Vector>& vnormals);
+   //get bbox
+   std::pair<pcl::PointXYZ, pcl::PointXYZ> get_cloud_BBOX(pcl::PointCloud<pcl::PointNormal>::Ptr& cloud);
 
    double max_coordinate(const Polyhedron& poly);
 

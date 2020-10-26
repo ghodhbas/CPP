@@ -639,12 +639,13 @@ Edge_Graph PathPlanner::construct_MST(vector<std::pair<int, int>>& pair_vec, std
 
 void PathPlanner::DFS(vector<Eigen::Vector3f>& path, Node* node) {
 	node->visited = true;
-	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
-	path.push_back(position);
 	for (size_t i = 0; i < node->neighbours.size(); i++)
 	{
 		if (!node->neighbours[i]->visited) DFS(path, node->neighbours[i]);
 	}
+
+	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
+	path.push_back(position);
 }
 
 vector<Eigen::Vector3f> PathPlanner::generate_path(Edge_Graph& MST) {
