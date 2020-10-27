@@ -36,8 +36,8 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	
 	//// 3 and 5 is used to making the BB bigger not exactly on the boundry of the cluster
    //// (sometimes it is very small set of samples and the descritization sample will not fit)
-   float maximizeSizeXY = 6.f;
-   float maximizeSizeZ = 6.f;
+   float maximizeSizeXY = 3.f;
+   float maximizeSizeZ = 3.f;
 
    //increase the index and use it with voxel res to calculate position of the srone throughout the grid
    //with everyposition check if it's in the voxel grid, if it is che ck if it is occupied

@@ -79,47 +79,31 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
    // write_PLY(argv[2], surface);
 }
 
-int main(int argc, char* argv[])
-{
-    Polyhedron poly;
-    SurfaceMesh surface;
 
-    //set up MEesh
-    IO::import_OFF_file(poly, surface, argv[1]);
-    //import_OBJ_file(m, "plane.obj");
-    if (poly.is_empty() && surface.is_empty()) return 1;
-    //MyMesh::print_mesh_info(m);
-    
-    //MyMesh::segment_mesh(surface);
-
-    /*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    //method_1(poly, surface,  argv)
-   
-
-    /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    LayeredPP lpp( 0.3f, 3.f);
+void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
+    LayeredPP lpp(0.5f, 2.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
     CGAL::Polygon_mesh_processing::compute_vertex_normals(poly, boost::make_assoc_property_map(vnormals));
 
-    
+
     //Step 2: convert surface mesh into point cloud that has normals 
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
     MyMesh::convert_to_pointcloud(poly, cloud, vnormals);
 
-    //cout << "MIN POINT" << min_max.first << endl << endl;
-    //cout << "Max POINT" << min_max.second << endl<<  endl;
 
-    //Step 3: voxalize the whole cloud and get cloud
+    //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data.
     pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 1.f);
-    //generate viewpoints from mesh grid and make them into a filtered point cloud
+
+
+    //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
     typedef std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>  Viewpoints;
     Viewpoints viewpoints = lpp.generate_viewpoints(mesh_voxelgrid);
-    pcl::PointCloud<pcl::PointNormal>::Ptr viewpoints_cloud= pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+    pcl::PointCloud<pcl::PointNormal>::Ptr viewpoints_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
     for (size_t i = 0; i < viewpoints.size(); i++)
-    {   
-        
+    {
+
         pcl::PointNormal point = pcl::PointNormal(viewpoints.at(i).first[0], viewpoints.at(i).first[1], viewpoints.at(i).first[2], viewpoints.at(i).second[0], viewpoints.at(i).second[1], viewpoints.at(i).second[2]);
         viewpoints_cloud->push_back(point);
     }
@@ -128,17 +112,16 @@ int main(int argc, char* argv[])
 
 
 
-    //Step 4: split the  viewpoints into layers
-    int nb_layers = 6;
+    //Step 5: split the  viewpoints into layers
+    int nb_layers = 3;
     vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(viewpoints_cloud, nb_layers, min_max);
 
 
-
-    //Step 5: Voxelize every layer of viewpoints and make input for TSP
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 3.f);
+    //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 3.5f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
-        pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr( new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
+        pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
         //pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> voxel_layer = viewpoints_voxel_layers[i];
         Viewpoints layer;
         for (size_t j = 0; j < filtered_layer_cloud->points.size(); j++)
@@ -159,7 +142,7 @@ int main(int argc, char* argv[])
         //construct list of viewpoints  for that layer
         Viewpoints layer = downsampled_viewpoints_perlayer[i];
         vector<std::pair<int, int>> pair_vec;
-        std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec );
+        std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec);
         //cout << "Constructing Minimun Spanning tree between solution viewpoints..." << endl;
         Edge_Graph MST = lpp.construct_MST(pair_vec, distance_map);
         //cout << "MST CONSTRUCTED" << endl << endl;
@@ -174,16 +157,50 @@ int main(int argc, char* argv[])
     //step 8: link solutions into 1 path
     vector<Eigen::Vector3f > result;
     for (size_t i = 0; i < paths_list.size(); i++)
-    {   
+    {
         vector<Eigen::Vector3f> path = paths_list[i];
         for (size_t j = 0; j < path.size(); j++)
         {
             result.push_back(path[j]);
+            
         }
     }
 
+
     IO::write_PLY(argv[4], result);
     cout << "path done" << endl;
+
+
+
+    //test for completeneness
+    //follow each node
+    // retrieve the viewpoint and the direction
+    // construct the frustum/
+    //intesect with filtered point cloud of mesh
+    //color  -- if angle between look direction of viewpopint and normal of voxel is within threshold then color it
+    //repeat
+}
+
+
+int main(int argc, char* argv[])
+{
+    Polyhedron poly;
+    SurfaceMesh surface;
+
+    //set up MEesh
+    IO::import_OFF_file(poly, surface, argv[1]);
+    //import_OBJ_file(m, "plane.obj");
+    if (poly.is_empty() && surface.is_empty()) return 1;
+    //MyMesh::print_mesh_info(m);
+    
+    //MyMesh::segment_mesh(surface);
+
+    /*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
+    //method_1(poly, surface,  argv)
+   
+
+    /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
+    method2(poly, surface, argv);
 
 
    return EXIT_SUCCESS;
