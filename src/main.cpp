@@ -7,6 +7,7 @@
 #include "PathPlanner.h"
 #include "IO.h"
 #include "LayeredPP.h"
+#include <pcl/filters/frustum_culling.h>
 
 /* METHOD 1: Set cover + TSP  */
 void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
@@ -80,8 +81,13 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 }
 
 
+
+
+
+
+
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 2.f);
+    LayeredPP lpp(0.1f, 2.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -94,7 +100,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data.
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 1.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
 
 
     //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
@@ -113,12 +119,12 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 5: split the  viewpoints into layers
-    int nb_layers = 3;
+    int nb_layers = 4;
     vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(viewpoints_cloud, nb_layers, min_max);
 
 
     //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 3.5f);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 3.f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
         pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
@@ -155,31 +161,115 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //step 8: link solutions into 1 path
-    vector<Eigen::Vector3f > result;
+    vector<Eigen::Vector3f > final_path;
     for (size_t i = 0; i < paths_list.size(); i++)
     {
         vector<Eigen::Vector3f> path = paths_list[i];
         for (size_t j = 0; j < path.size(); j++)
         {
-            result.push_back(path[j]);
+            final_path.push_back(path[j]);
             
         }
     }
 
-
-    IO::write_PLY(argv[4], result);
+    IO::write_PLY(argv[4], final_path);
     cout << "path done" << endl;
 
 
+    //validationcloud output
+    pcl::PointCloud<pcl::PointNormal>::Ptr validation_cloud(new pcl::PointCloud<pcl::PointNormal>);
 
     //test for completeneness
+    pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud(new pcl::PointCloud<pcl::PointNormal>);   // using volumetric data instead of actual mesh  ---- can switch and test on actual mesh
+    *voxel_cloud = mesh_voxelgrid.getFilteredPointCloud();
     //follow each node
-    // retrieve the viewpoint and the direction
-    // construct the frustum/
-    //intesect with filtered point cloud of mesh
-    //color  -- if angle between look direction of viewpopint and normal of voxel is within threshold then color it
-    //repeat
+    for (size_t i = 0; i < downsampled_viewpoints_perlayer.size(); i++)
+    {
+        Viewpoints layer = downsampled_viewpoints_perlayer[i];
+
+ 
+        // retrieve the viewpoint and the direction
+        for (size_t j = 0; j < layer.size(); j++)
+        {
+
+            std::pair<Eigen::Vector3f, Eigen::Vector3f> viewpoint = layer[j];
+            Eigen::Vector3f position = viewpoint.first;
+            Eigen::Vector3f dir = viewpoint.second;
+            dir.normalize();
+            pcl::FrustumCulling<pcl::PointNormal> fc;
+            //set either the input cloud or voxelized cloud
+            fc.setInputCloud(cloud);
+            //fc.setInputCloud(voxel_cloud);
+            fc.setVerticalFOV(60);
+            fc.setHorizontalFOV(90);
+            fc.setNearPlaneDistance(lpp.get_near_plane_d());
+            fc.setFarPlaneDistance(lpp.get_far_plane_d());
+
+            Eigen::Matrix4f pose;
+             // /* Find cospi and sinpi */
+             float c1 = sqrt(dir[0] * dir[0] + dir[1] * dir[1]);
+             float s1 = dir[2];
+             ///* Find cosO and sinO; if gimbal lock, choose (1,0) arbitrarily */
+             float c2 = c1 ? dir[0] / c1 : 1.0;
+             float s2 = c1 ? dir[1] / c1 : 0.0;
+             //
+             //return mat3(v.x, -s2, -s1 * c2,
+             //    v.y, c2, -s1 * s2,
+             //    v.z, 0, c1);
+             pose << dir[0], -s2, -s1 * c2, position[0],
+                     dir[1], c2, -s1 * s2, position[1],
+                     dir[2], 0, c1, position[2],
+                     0.f, 0.f, 0.f, 1.f; 
+
+
+
+            fc.setCameraPose(pose);
+            
+            pcl::PointCloud<pcl::PointNormal>::Ptr output(new pcl::PointCloud<pcl::PointNormal>);
+            fc.filter(*output);
+            
+            //go through the points and verify angle threshhold before adding
+            for (size_t k= 0; k < output->points.size(); k++)
+            {   
+                pcl::PointNormal p = output->points[k];
+                Eigen::Vector3f n(p.normal_x, p.normal_y, p.normal_z);
+                n.normalize();
+                float dot = dir.dot(n);
+                float angle = std::acos(dot / (dir.norm() * n.norm()));
+                if (angle < 45.f) {
+                    validation_cloud->points.push_back(p);
+                }
+            }
+
+            //*validation_cloud += *output;
+        }
+
+
+    }
+
+    //IO voxelcloud
+    std::vector< Kernel::Point_3> points_voxel;
+    for (size_t i = 0; i < voxel_cloud->points.size(); i++)
+    {
+        points_voxel.push_back(Kernel::Point_3(voxel_cloud->points[i].x, voxel_cloud->points[i].y, voxel_cloud->points[i].z));
+    }
+    IO::write_PLY("out/source.ply", points_voxel);
+
+
+
+    //io observed vertices
+    std::vector< Kernel::Point_3> points_test;
+    for (size_t i = 0; i < validation_cloud->points.size(); i++)
+    {
+        points_test.push_back(Kernel::Point_3(validation_cloud->points[i].x, validation_cloud->points[i].y, validation_cloud->points[i].z));
+    }
+    IO::write_PLY("out/validation.ply", points_test);
 }
+
+
+
+
+
 
 
 int main(int argc, char* argv[])

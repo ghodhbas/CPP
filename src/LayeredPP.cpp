@@ -108,16 +108,7 @@ pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> LayeredPP::voxelize(pcl::Poi
 
 
 vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> LayeredPP::voxelize_layers(vector< pcl::PointCloud<pcl::PointNormal>::Ptr>& layers, float voxelRes) {
-	//to do occlusion and frustum culling 
-	//create fc object
-	//set input to the point cloud in the layer
-	//  fc.setInputCloud(cloud);
-	//fc.setVerticalFOV(30);
-	//fc.setHorizontalFOV(30);
-	//fc.setNearPlaneDistance(0.2);
-	//fc.setFarPlaneDistance(2.0);
-	// fc.setCameraPose(camera_pose);
-	//fc.filter(*output);
+	
 
 	vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> voxel_layers;
 	Eigen::Vector3f max_b, min_b;
@@ -172,6 +163,7 @@ std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> LayeredPP::generate_vie
 		Eigen::Vector3f viewpoint_pos = position + ((far_plane_d-distance_epsilon)*normal);
 		//get look direction  -- oposite of notmal
 		Eigen::Vector3f look_dir = -normal;
+		look_dir.normalize();
 
 		//TODO double check that this location is free before adding it?
 

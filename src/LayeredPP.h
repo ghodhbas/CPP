@@ -25,8 +25,8 @@ public:
 
 	void output_viewpoints(std::vector<std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>>& layer_viewpoints);
 
-
-	
+	float get_near_plane_d() { return near_plane_d; }
+	float get_far_plane_d() { return far_plane_d; }
 
 private:
 	int get_range(pcl::PointNormal point, vector < std::pair<float, float>>& ranges);
@@ -43,6 +43,6 @@ private:
 
 	float near_plane_d;
 	float far_plane_d;
-	float distance_epsilon = 0.05f;
+	float distance_epsilon = 0.3f;
 };
 
