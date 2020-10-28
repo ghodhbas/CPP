@@ -31,12 +31,22 @@
 #include <CGAL/boost/graph/Face_filtered_graph.h>
 #include <CGAL/boost/graph/copy_face_graph.h>
 
+
+//ray box inter
+#include <CGAL/AABB_tree.h>
+#include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_face_graph_triangle_primitive.h>
+#include <CGAL/Polygon_mesh_processing/compute_normal.h>
+#include <CGAL/Polygon_mesh_processing/orientation.h>
+
 //treat floating points exactly
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef CGAL::Surface_mesh<Kernel::Point_3> SurfaceMesh;
 typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
 typedef Kernel::Point_3 Point;
 typedef Kernel::Vector_3 Vector;
+typedef Kernel::Ray_3 Ray;
+
 typedef std::array<unsigned char, 4> MyColor;
 
 // Point with color 
@@ -51,3 +61,9 @@ typedef boost::graph_traits<SurfaceMesh>::face_descriptor surface_face_descripto
 typedef boost::graph_traits<Polyhedron>::vertex_descriptor poly_vertex_descriptor;
 typedef boost::graph_traits<Polyhedron>::face_descriptor   poly_face_descriptor;
 typedef Polyhedron::Vertex_iterator        poly_vertex_iterator;
+
+//ray box
+typedef CGAL::AABB_face_graph_triangle_primitive<SurfaceMesh> Primitive;
+typedef CGAL::AABB_traits<Kernel, Primitive> Traits;
+typedef CGAL::AABB_tree<Traits> Tree;
+typedef boost::optional<Tree::Intersection_and_primitive_id<Ray>::Type> Ray_intersection;

@@ -87,7 +87,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.1f, 2.f);
+    LayeredPP lpp(0.1f, 4.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -100,7 +100,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data.
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 2.f);
 
 
     //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
@@ -119,12 +119,12 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 5: split the  viewpoints into layers
-    int nb_layers = 4;
+    int nb_layers = 3;
     vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(viewpoints_cloud, nb_layers, min_max);
 
 
     //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 3.f);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 5.f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
         pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
@@ -142,13 +142,16 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     // step 7: solve TSP on every layer
+
     vector< vector<Eigen::Vector3f >> paths_list;
     for (size_t i = 0; i < downsampled_viewpoints_perlayer.size(); i++)
     {
         //construct list of viewpoints  for that layer
         Viewpoints layer = downsampled_viewpoints_perlayer[i];
         vector<std::pair<int, int>> pair_vec;
-        std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec);
+        cout << "HEERE" << endl;
+        std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec, surface);
+        cout << "done" << endl;
         //cout << "Constructing Minimun Spanning tree between solution viewpoints..." << endl;
         Edge_Graph MST = lpp.construct_MST(pair_vec, distance_map);
         //cout << "MST CONSTRUCTED" << endl << endl;
@@ -171,6 +174,9 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
             
         }
     }
+    //TODO attach correctly from top to bottom
+
+
 
     IO::write_PLY(argv[4], final_path);
     cout << "path done" << endl;

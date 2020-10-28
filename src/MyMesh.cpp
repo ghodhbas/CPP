@@ -319,4 +319,23 @@ namespace MyMesh {
     }
 
 
+
+    bool ray_box_interstction(SurfaceMesh& surface, Eigen::Vector3f p1, Eigen::Vector3f p2) {
+        Tree tree(faces(surface).first, faces(surface).second, surface);
+        double d = CGAL::Polygon_mesh_processing::is_outward_oriented(surface) ? -1 : 1;
+        Eigen::Vector3f dir(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]);
+        dir.normalize();
+
+        Vector v(dir[0],dir[1],dir[2]);
+        Point p(p1[0], p1[1], p1[2]);
+        Ray ray(p, d * v);
+        Ray_intersection intersection = tree.first_intersection(ray);
+        if (intersection) {
+            return true;
+        }
+        return false;
+
+    }
+
+
 }

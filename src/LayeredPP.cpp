@@ -40,6 +40,7 @@ int LayeredPP::get_range(pcl::PointNormal point, vector < std::pair<float, float
 		std::pair<float, float> r = ranges[i];
 		if (point.y >= r.first && point.y <= r.second) return i;
 	}
+	return ranges.size() - 1;
 }
 
 void LayeredPP::classify_points_to_layers(pcl::PointCloud<pcl::PointNormal>::Ptr cloud, vector<std::pair<float, float>>& ranges, vector< pcl::PointCloud<pcl::PointNormal>::Ptr>& layer_vec)
@@ -228,7 +229,7 @@ void LayeredPP::combinations(const vector<int>& elems, vector<std::pair<int, int
 }
 
 
-std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>&  viewpoints, vector<std::pair<int, int>>& pair_vec) {
+std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>&  viewpoints, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface) {
 	//get the indecis of the viewpoints in the gris and in the graph
 	cout << "NB viewpoints in layer: " << viewpoints.size() << endl;
 	//key: index of source in the graph
@@ -244,12 +245,14 @@ std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<s
 		//cout << "PAIR: " << pair_vec[i].first << ", " << pair_vec[i].second << endl;
 		Eigen::Vector3f p1 = viewpoints[pair_vec[i].first].first;
 		Eigen::Vector3f p2 = viewpoints[pair_vec[i].second].first;
-		float d = sqrtf(powf(p2[0] - p1[0], 2) + powf(p2[1] - p1[1], 2) + powf(p2[2] - p1[2], 2));
-		//cout << "Shortest distance = " << d << endl << endl;
-	
-		//save distance from one cell to the other
-		distance_map[pair_vec[i].first][pair_vec[i].second] = d;
-		distance_map[pair_vec[i].second][pair_vec[i].first] = d;
+		//if (!MyMesh::ray_box_interstction(surface, p1, p2)) {
+			float d = sqrtf(powf(p2[0] - p1[0], 2) + powf(p2[1] - p1[1], 2) + powf(p2[2] - p1[2], 2));
+			//cout << "Shortest distance = " << d << endl << endl;
+
+			//save distance from one cell to the other
+			distance_map[pair_vec[i].first][pair_vec[i].second] = d;
+			distance_map[pair_vec[i].second][pair_vec[i].first] = d;
+		//}
 	
 	}
 	cout << "nb pairs: " << pair_vec.size() << endl << endl;
@@ -351,16 +354,16 @@ vector<Eigen::Vector3f> LayeredPP::generate_path(Edge_Graph& MST, std::vector<st
 
 	}
 
-
-	Node* chosen = MST_g.nodes[0];
+	Node* chosen;
 	//pick vertex with lowest  y value(closest to ground)
-	for (size_t i = 1; i < MST_g.nodes.size(); i++)
-	{
-		Node* n = MST_g.nodes[i];
-		if (chosen->position.y() > n->position.y()) chosen = n;
-	}
-	//srand(time(NULL));
-	//Node* chosen = MST_g.nodes[rand() % MST_g.nodes.size()];
+	chosen = MST_g.nodes[0];
+	//for (size_t i = 1; i < MST_g.nodes.size(); i++)
+	//{
+	//	Node* n = MST_g.nodes[i];
+	//	if (chosen->position.y() > n->position.y()) chosen = n;
+	//}
+	srand(time(NULL));
+	chosen = MST_g.nodes[rand() % MST_g.nodes.size()];
 
 	//save neighbour;
 	for (size_t i = 0; i < MST.edges.size(); i++)
