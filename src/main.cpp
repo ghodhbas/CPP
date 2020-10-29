@@ -83,7 +83,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 
-
+//TODO in MST if the path intersects with mesh choose another one?
 
 
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
