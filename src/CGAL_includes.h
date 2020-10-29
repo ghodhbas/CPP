@@ -39,6 +39,8 @@
 #include <CGAL/Polygon_mesh_processing/compute_normal.h>
 #include <CGAL/Polygon_mesh_processing/orientation.h>
 
+#include <CGAL/Polygon_mesh_processing/bbox.h>
+
 //treat floating points exactly
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef CGAL::Surface_mesh<Kernel::Point_3> SurfaceMesh;

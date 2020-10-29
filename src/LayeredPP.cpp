@@ -245,14 +245,25 @@ std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<s
 		//cout << "PAIR: " << pair_vec[i].first << ", " << pair_vec[i].second << endl;
 		Eigen::Vector3f p1 = viewpoints[pair_vec[i].first].first;
 		Eigen::Vector3f p2 = viewpoints[pair_vec[i].second].first;
-		//if (!MyMesh::ray_box_interstction(surface, p1, p2)) {
+
+		//use ray box inter
+		
+		Eigen::Vector3f Hit;
+		CGAL::Bbox_3 bbox = CGAL::Polygon_mesh_processing::bbox(surface);
+		//if(MyMesh::checkLineBox(Eigen::Vector3f(bbox.xmin(), bbox.ymin(),bbox.zmin()) , Eigen::Vector3f(bbox.xmax(), bbox.ymax(), bbox.zmax()), p1,p2,  Hit)){
+		//if (MyMesh::ray_box_interstction(surface, p1, p2)) {
+		if (MyMesh::intersect(p1,p2,bbox)) {
+
+			distance_map[pair_vec[i].first][pair_vec[i].second] = 999999999999.f;
+			distance_map[pair_vec[i].second][pair_vec[i].first] = 999999999999.f;
+			
+		}else {
 			float d = sqrtf(powf(p2[0] - p1[0], 2) + powf(p2[1] - p1[1], 2) + powf(p2[2] - p1[2], 2));
 			//cout << "Shortest distance = " << d << endl << endl;
-
 			//save distance from one cell to the other
 			distance_map[pair_vec[i].first][pair_vec[i].second] = d;
 			distance_map[pair_vec[i].second][pair_vec[i].first] = d;
-		//}
+		}
 	
 	}
 	cout << "nb pairs: " << pair_vec.size() << endl << endl;
@@ -310,7 +321,9 @@ Edge_Graph LayeredPP::construct_MST(vector<std::pair<int, int>>& pair_vec, std::
 //TODO: FIX / Improve?
 void LayeredPP::DFS(vector<Eigen::Vector3f>& path, Node* node, Node* prev) {
 	node->visited = true;
-
+	
+	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
+	path.push_back(position);
 	//Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
 	//path.push_back(position);
 
@@ -320,18 +333,9 @@ void LayeredPP::DFS(vector<Eigen::Vector3f>& path, Node* node, Node* prev) {
 		if (!node->neighbours[i]->visited) {
 			DFS(path, node->neighbours[i], node);
 		}
-		//else {
-		//	if (path.size() > 0) {
-		//		Eigen::Vector3f last_pt = path[path.size() - 1];
-		//		if (! position.isApprox(last_pt))   path.push_back(position);
-		//	}
-		//}
-
 	
 	}
 
-	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
-	path.push_back(position);
 
 }
 
@@ -356,7 +360,7 @@ vector<Eigen::Vector3f> LayeredPP::generate_path(Edge_Graph& MST, std::vector<st
 
 	Node* chosen;
 	//pick vertex with lowest  y value(closest to ground)
-	chosen = MST_g.nodes[0];
+	//chosen = MST_g.nodes[0];
 	//for (size_t i = 1; i < MST_g.nodes.size(); i++)
 	//{
 	//	Node* n = MST_g.nodes[i];

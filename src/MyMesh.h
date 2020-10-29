@@ -39,6 +39,14 @@ namespace MyMesh {
 
    bool ray_box_interstction(SurfaceMesh& surface, Eigen::Vector3f p1, Eigen::Vector3f p2);
 
+
+   bool GetIntersection(float fDst1, float fDst2, Eigen::Vector3f P1, Eigen::Vector3f P2, Eigen::Vector3f& Hit);
+   bool InBox(Eigen::Vector3f Hit, Eigen::Vector3f B1, Eigen::Vector3f B2, const int Axis);
+   bool checkLineBox(Eigen::Vector3f B1, Eigen::Vector3f B2, Eigen::Vector3f L1, Eigen::Vector3f L2, Eigen::Vector3f& Hit);
+
+
+   bool intersect(const Eigen::Vector3f p1, Eigen::Vector3f p2, CGAL::Bbox_3 bbox);
+
 }
 
 #endif

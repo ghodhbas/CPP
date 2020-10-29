@@ -338,4 +338,91 @@ namespace MyMesh {
     }
 
 
+
+    bool GetIntersection(float fDst1, float fDst2, Eigen::Vector3f P1, Eigen::Vector3f P2, Eigen::Vector3f& Hit) {
+        if ((fDst1 * fDst2) >= 0.0f) return false;
+        if (fDst1 == fDst2) return false;
+        Hit = P1 + (P2 - P1) * (-fDst1 / (fDst2 - fDst1));
+        return true;
+    }
+
+    bool InBox(Eigen::Vector3f Hit, Eigen::Vector3f B1, Eigen::Vector3f B2, const int Axis) {
+        if (Axis == 1 && Hit[2] > B1[2] && Hit[2] < B2[2] && Hit[1] > B1[1] && Hit[1] < B2[1]) return true;
+        if (Axis == 2 && Hit[2] > B1[2] && Hit[2] < B2[2] && Hit[0] > B1[0] && Hit[0] < B2[0]) return true;
+        if (Axis == 3 && Hit[0] > B1[0] && Hit[0] < B2[0] && Hit[1] > B1[1] && Hit[1] < B2[1]) return true;
+        return false;
+    }
+
+
+    // returns true if line (L1, L2) intersects with the box (B1, B2)
+    // returns intersection point in Hit
+    bool checkLineBox(Eigen::Vector3f B1, Eigen::Vector3f B2, Eigen::Vector3f L1, Eigen::Vector3f L2, Eigen::Vector3f& Hit)
+    {
+        if (L2[0] < B1[0] && L1[0] < B1[0]) return false;
+        if (L2[0] > B2[0] && L1[0] > B2[0]) return false;
+        if (L2[1] < B1[1] && L1[1] < B1[1]) return false;
+        if (L2[1] > B2[1] && L1[1] > B2[1]) return false;
+        if (L2[2] < B1[2] && L1[2] < B1[2]) return false;
+        if (L2[2] > B2[2] && L1[2] > B2[2]) return false;
+        if (L1[0] > B1[0] && L1[0] < B2[0] &&
+            L1[1] > B1[1] && L1[1] < B2[1] &&
+            L1[2] > B1[2] && L1[2] < B2[2])
+        {
+            Hit = L1;
+            return true;
+        }
+        if ((GetIntersection(L1[0] - B1[0], L2[0] - B1[0], L1, L2, Hit) && InBox(Hit, B1, B2, 1))
+            || (GetIntersection(L1[1] - B1[1], L2[1] - B1[1], L1, L2, Hit) && InBox(Hit, B1, B2, 2))
+            || (GetIntersection(L1[2] - B1[2], L2[2] - B1[2], L1, L2, Hit) && InBox(Hit, B1, B2, 3))
+            || (GetIntersection(L1[0] - B2[0], L2[0] - B2[0], L1, L2, Hit) && InBox(Hit, B1, B2, 1))
+            || (GetIntersection(L1[1] - B2[1], L2[1] - B2[1], L1, L2, Hit) && InBox(Hit, B1, B2, 2))
+            || (GetIntersection(L1[2] - B2[2], L2[2] - B2[2], L1, L2, Hit) && InBox(Hit, B1, B2, 3)))
+            return true;
+
+        return false;
+    }
+
+
+    bool intersect(const Eigen::Vector3f p1, Eigen::Vector3f p2, CGAL::Bbox_3 bbox)
+    {   
+        Eigen::Vector3f r = p2 - p1;
+        r.normalize();
+
+        float tmin = (bbox.xmin() - p1[0]) / r[0];
+        float tmax = (bbox.xmax() - p1[0]) / r[0];
+
+        if (tmin > tmax) swap(tmin, tmax);
+
+        float tymin = (bbox.ymin() - p1[1]) / r[1];
+        float tymax = (bbox.ymax() - p1[1]) / r[1];
+
+        if (tymin > tymax) swap(tymin, tymax);
+
+        if ((tmin > tymax) || (tymin > tmax))
+            return false;
+
+        if (tymin > tmin)
+            tmin = tymin;
+
+        if (tymax < tmax)
+            tmax = tymax;
+
+        float tzmin = (bbox.zmin() - p1[2]) / r[2];
+        float tzmax = (bbox.zmax() - p1[2]) / r[2];
+
+        if (tzmin > tzmax) swap(tzmin, tzmax);
+
+        if ((tmin > tzmax) || (tzmin > tmax))
+            return false;
+
+        if (tzmin > tmin)
+            tmin = tzmin;
+
+        if (tzmax < tmax)
+            tmax = tzmax;
+
+        return true;
+    }
+
+
 }

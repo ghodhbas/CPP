@@ -87,7 +87,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.1f, 4.f);
+    LayeredPP lpp(0.1f, 5.5f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -119,12 +119,12 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 5: split the  viewpoints into layers
-    int nb_layers = 3;
+    int nb_layers = 4;
     vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(viewpoints_cloud, nb_layers, min_max);
 
 
     //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 5.f);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 1.f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
         pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
@@ -149,9 +149,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
         //construct list of viewpoints  for that layer
         Viewpoints layer = downsampled_viewpoints_perlayer[i];
         vector<std::pair<int, int>> pair_vec;
-        cout << "HEERE" << endl;
         std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec, surface);
-        cout << "done" << endl;
         //cout << "Constructing Minimun Spanning tree between solution viewpoints..." << endl;
         Edge_Graph MST = lpp.construct_MST(pair_vec, distance_map);
         //cout << "MST CONSTRUCTED" << endl << endl;
@@ -165,16 +163,42 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
     //step 8: link solutions into 1 path
     vector<Eigen::Vector3f > final_path;
+
+    Eigen::Vector3f last;
+    int last_idx;
+    int x = 0;
     for (size_t i = 0; i < paths_list.size(); i++)
     {
         vector<Eigen::Vector3f> path = paths_list[i];
+        int idx = -1;
+        float d = 9999999.f;
         for (size_t j = 0; j < path.size(); j++)
         {
             final_path.push_back(path[j]);
-            
+
+            ////calculate distance last point to other point the next layer
+            //if (i > 0) {
+            //    if (d > (path[j] - last).norm()) {
+            //        idx = x;
+            //        d = (path[j] - last).norm();
+            //    }
+            //}
+
+            x++;
         }
+
+        //
+        //if (idx > -1) {
+        //    Eigen::Vector3f p = final_path[idx];
+        //    final_path.erase(final_path.begin()+idx);
+        //    final_path.emplace(final_path.begin() + last_idx+1, p);
+        //}
+        //
+        //last = final_path[x-1];
+        //last_idx = x - 1;
+
+
     }
-    //TODO attach correctly from top to bottom
 
 
 
