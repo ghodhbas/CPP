@@ -73,7 +73,7 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     cloud->points = cloudPtr->points;
     cloudCopy->points = cloud->points;
 
-    voxelRes = 3.f;
+    voxelRes = 20.f;
     frame_id = "world";
     OriginalVoxelsSize = 0.0;
     id = 0.0;
@@ -109,7 +109,7 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     fc.setVerticalFOV(120);
     fc.setHorizontalFOV(120);
     fc.setNearPlaneDistance(0.2f);
-    fc.setFarPlaneDistance(2.2f);
+    fc.setFarPlaneDistance(30.f);
 
     AccuracyMaxSet = false;
 }

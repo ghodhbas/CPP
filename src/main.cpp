@@ -9,6 +9,19 @@
 #include "LayeredPP.h"
 #include <pcl/filters/frustum_culling.h>
 
+float calculate_distance(vector<Eigen::Vector3f > path) {
+
+    float total = 0.f;
+    Eigen::Vector3f last = path[0];
+    for (size_t i = 1; i < path.size(); i++)
+    {
+        total += (path[i] - last).norm();
+        last = path[i];
+    }
+    return total;
+}
+
+
 /* METHOD 1: Set cover + TSP  */
 void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     //make point cloud from vertices
@@ -74,7 +87,8 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     vector<Eigen::Vector3f > path = pp.generate_path(MST);
     IO::write_PLY(argv[4], path);
 
-
+    //calculate path distance
+    cout << "TOTAL DISTANCE: " << calculate_distance(path);
    ///color visible surface
    // MyMesh::color_visible_surface(visible_s, surface);
    // write_PLY(argv[2], surface);
@@ -87,7 +101,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.1f, 5.5f);
+    LayeredPP lpp(0.2f, 30.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -100,7 +114,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data.
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 2.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 10.f);
 
 
     //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
@@ -119,12 +133,12 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 5: split the  viewpoints into layers
-    int nb_layers = 4;
+    int nb_layers = 12;
     vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(viewpoints_cloud, nb_layers, min_max);
 
 
     //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 1.f);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 50.f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
         pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
@@ -144,6 +158,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     // step 7: solve TSP on every layer
 
     vector< vector<Eigen::Vector3f >> paths_list;
+    Eigen::Vector3f last_node(0.f,0.f,0.f);
     for (size_t i = 0; i < downsampled_viewpoints_perlayer.size(); i++)
     {
         //construct list of viewpoints  for that layer
@@ -151,13 +166,17 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
         vector<std::pair<int, int>> pair_vec;
         std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec, surface);
         //cout << "Constructing Minimun Spanning tree between solution viewpoints..." << endl;
+
         Edge_Graph MST = lpp.construct_MST(pair_vec, distance_map);
         //cout << "MST CONSTRUCTED" << endl << endl;
-        vector<Eigen::Vector3f > path = lpp.generate_path(MST, layer);
+        //select the node that is the closest to the end of the previous path
+        vector<Eigen::Vector3f > path = lpp.generate_path(MST, layer, last_node);
         //IO::write_PLY(argv[4], path);
         //cout << "path done" << endl;
         //pick the closes point to the last point in the previous path as a start point for solving the MST
         paths_list.push_back(path);
+        last_node = path[path.size() - 1];
+
     }
 
 
@@ -170,6 +189,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     for (size_t i = 0; i < paths_list.size(); i++)
     {
         vector<Eigen::Vector3f> path = paths_list[i];
+        IO::write_PLY(std::string("out/path_").append(std::to_string(i)+".off"), final_path);
         int idx = -1;
         float d = 9999999.f;
         for (size_t j = 0; j < path.size(); j++)
@@ -197,13 +217,16 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
         //last = final_path[x-1];
         //last_idx = x - 1;
 
-
     }
 
 
 
     IO::write_PLY(argv[4], final_path);
     cout << "path done" << endl;
+
+
+    //calculate path distance
+    cout << "TOTAL DISTANCE: " << calculate_distance(final_path);
 
 
     //validationcloud output
@@ -230,7 +253,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
             //set either the input cloud or voxelized cloud
             fc.setInputCloud(cloud);
             //fc.setInputCloud(voxel_cloud);
-            fc.setVerticalFOV(60);
+            fc.setVerticalFOV(90);
             fc.setHorizontalFOV(90);
             fc.setNearPlaneDistance(lpp.get_near_plane_d());
             fc.setFarPlaneDistance(lpp.get_far_plane_d());
@@ -266,7 +289,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                 n.normalize();
                 float dot = dir.dot(n);
                 float angle = std::acos(dot / (dir.norm() * n.norm()));
-                if (angle < 45.f) {
+                if (angle < 60.f) {
                     validation_cloud->points.push_back(p);
                 }
             }
@@ -316,7 +339,7 @@ int main(int argc, char* argv[])
     //MyMesh::segment_mesh(surface);
 
     /*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    //method_1(poly, surface,  argv)
+    //method_1(poly, surface, argv);
    
 
     /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */

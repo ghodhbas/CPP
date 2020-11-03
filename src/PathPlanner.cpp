@@ -11,7 +11,7 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	drone = new UAV();
 
 	//create voxel grid of the point cloud
-	voxelRes = 3.f;
+	voxelRes = 10.f;
 	voxelGrid.setInputCloud(input_cloud);
 	voxelGrid.setLeafSize(voxelRes, voxelRes, voxelRes);
 	voxelGrid.initializeVoxelGrid();
@@ -36,31 +36,31 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	
 	//// 3 and 5 is used to making the BB bigger not exactly on the boundry of the cluster
    //// (sometimes it is very small set of samples and the descritization sample will not fit)
-   float maximizeSizeXY = 3.f;
-   float maximizeSizeZ = 3.f;
+   float maximizeSizeXY = 30.f;
+   float maximizeSizeZ = 30.f;
 
    //increase the index and use it with voxel res to calculate position of the srone throughout the grid
    //with everyposition check if it's in the voxel grid, if it is che ck if it is occupied
 
 	drone_start[0] = min_b[0] - ((float)maximizeSizeXY/2.f) ;//5
 	drone_start[1] = min_b[1] - ((float)maximizeSizeXY/2.f) ;//5
-	drone_start[2] = min_b[2] - ((float)maximizeSizeZ/2.f);//
-	
+	//drone_start[2] = min_b[2] - ((float)maximizeSizeZ/2.f);//
+	drone_start[2] = min_b[2];//
 
 	drone_end[0] = max_b[0] + ((float)maximizeSizeXY / 2.f);//5
 	drone_end[1] = max_b[1] + ((float)maximizeSizeXY / 2.f);//5
-	drone_end[2] = max_b[2] + ((float)maximizeSizeZ / 2.f);//
+	drone_end[2] = max_b[2] + ((float)maximizeSizeZ);//
 	
 
 	drone_start_index[0] = min_b_idx[0] - (((int)(maximizeSizeXY / 2)) / voxelRes);
 	drone_start_index[1] = min_b_idx[1] - (((int)(maximizeSizeXY / 2)) / voxelRes);
-	drone_start_index[2] = min_b_idx[2] - (((int)(maximizeSizeZ / 2)) / voxelRes);
+	drone_start_index[2] = min_b_idx[2] ;
 	
 	
 	
 	drone_end_index[0] = max_b_idx[0] + (((int)(maximizeSizeXY / 2))/voxelRes);
 	drone_end_index[1] = max_b_idx[1] + (((int)(maximizeSizeXY / 2))/voxelRes);
-	drone_end_index[2] = max_b_idx[2] + (((int)(maximizeSizeZ / 2) )/ voxelRes);
+	drone_end_index[2] = max_b_idx[2] + (((int)(maximizeSizeZ) )/ voxelRes);
 
 	gridSize[0] = drone_end_index[0] - drone_start_index[0] +1;//
 	gridSize[1] = drone_end_index[1] - drone_start_index[1] +1;//
@@ -639,13 +639,14 @@ Edge_Graph PathPlanner::construct_MST(vector<std::pair<int, int>>& pair_vec, std
 
 void PathPlanner::DFS(vector<Eigen::Vector3f>& path, Node* node) {
 	node->visited = true;
+
+	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
+	path.push_back(position);
 	for (size_t i = 0; i < node->neighbours.size(); i++)
 	{
 		if (!node->neighbours[i]->visited) DFS(path, node->neighbours[i]);
 	}
 
-	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
-	path.push_back(position);
 }
 
 vector<Eigen::Vector3f> PathPlanner::generate_path(Edge_Graph& MST) {
@@ -673,7 +674,7 @@ vector<Eigen::Vector3f> PathPlanner::generate_path(Edge_Graph& MST) {
 	for (size_t i = 1; i < MST_g.nodes.size(); i++)
 	{	
 		Node* n = MST_g.nodes[i];
-		if (chosen->position.z() > n->position.z()) chosen = n;
+		if (chosen->position.y() > n->position.y()) chosen = n;
 	}
 
 	//save neighbour;
