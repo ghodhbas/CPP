@@ -8,6 +8,8 @@
 #include "IO.h"
 #include "LayeredPP.h"
 #include <pcl/filters/frustum_culling.h>
+#include <chrono> 
+using namespace std::chrono;
 
 float calculate_distance(vector<Eigen::Vector3f > path) {
 
@@ -77,7 +79,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     //construct all the pairs from the viewpoints and calculate the distances between them -- edge list
     cout << "Calculating shortest distances between pairs of viewpoints..." << endl;
     vector<std::pair<int, int>> pair_vec;
-    std::map<int, std::map<int, int>> distance_map  =  pp.calculate_distances(viewpoint_graph_idx, pair_vec);
+    std::map<int, std::map<int, int>> distance_map  =  pp.calculate_distances(viewpoint_graph_idx, pair_vec, surface);
     cout << "Distances calculation Complete" << endl << endl;
 
     cout << "Constructing Minimun Spanning tree between solution viewpoints..." << endl;
@@ -98,10 +100,8 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 //TODO in MST if the path intersects with mesh choose another one?
-
-
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.2f, 30.f);
+    LayeredPP lpp(0.2f, 50.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -114,7 +114,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data.
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 10.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 5.f);
 
 
     //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
@@ -189,34 +189,14 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     for (size_t i = 0; i < paths_list.size(); i++)
     {
         vector<Eigen::Vector3f> path = paths_list[i];
-        IO::write_PLY(std::string("out/path_").append(std::to_string(i)+".off"), final_path);
+        //IO::write_PLY(std::string("out/path_").append(std::to_string(i)+".ply"), path);
         int idx = -1;
         float d = 9999999.f;
         for (size_t j = 0; j < path.size(); j++)
         {
             final_path.push_back(path[j]);
-
-            ////calculate distance last point to other point the next layer
-            //if (i > 0) {
-            //    if (d > (path[j] - last).norm()) {
-            //        idx = x;
-            //        d = (path[j] - last).norm();
-            //    }
-            //}
-
             x++;
         }
-
-        //
-        //if (idx > -1) {
-        //    Eigen::Vector3f p = final_path[idx];
-        //    final_path.erase(final_path.begin()+idx);
-        //    final_path.emplace(final_path.begin() + last_idx+1, p);
-        //}
-        //
-        //last = final_path[x-1];
-        //last_idx = x - 1;
-
     }
 
 
@@ -226,90 +206,90 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //calculate path distance
-    cout << "TOTAL DISTANCE: " << calculate_distance(final_path);
+    cout << "TOTAL DISTANCE: " << calculate_distance(final_path)<<endl;
 
 
-    //validationcloud output
-    pcl::PointCloud<pcl::PointNormal>::Ptr validation_cloud(new pcl::PointCloud<pcl::PointNormal>);
-
-    //test for completeneness
-    pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud(new pcl::PointCloud<pcl::PointNormal>);   // using volumetric data instead of actual mesh  ---- can switch and test on actual mesh
-    *voxel_cloud = mesh_voxelgrid.getFilteredPointCloud();
-    //follow each node
-    for (size_t i = 0; i < downsampled_viewpoints_perlayer.size(); i++)
-    {
-        Viewpoints layer = downsampled_viewpoints_perlayer[i];
-
- 
-        // retrieve the viewpoint and the direction
-        for (size_t j = 0; j < layer.size(); j++)
+        //validationcloud output
+        pcl::PointCloud<pcl::PointNormal>::Ptr validation_cloud(new pcl::PointCloud<pcl::PointNormal>);
+   
+        //test for completeneness
+        pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud(new pcl::PointCloud<pcl::PointNormal>);   // using volumetric data instead of actual mesh  ---- can switch and test on actual mesh
+        *voxel_cloud = mesh_voxelgrid.getFilteredPointCloud();
+        //follow each node
+        for (size_t i = 0; i < downsampled_viewpoints_perlayer.size(); i++)
         {
-
-            std::pair<Eigen::Vector3f, Eigen::Vector3f> viewpoint = layer[j];
-            Eigen::Vector3f position = viewpoint.first;
-            Eigen::Vector3f dir = viewpoint.second;
-            dir.normalize();
-            pcl::FrustumCulling<pcl::PointNormal> fc;
-            //set either the input cloud or voxelized cloud
-            fc.setInputCloud(cloud);
-            //fc.setInputCloud(voxel_cloud);
-            fc.setVerticalFOV(90);
-            fc.setHorizontalFOV(90);
-            fc.setNearPlaneDistance(lpp.get_near_plane_d());
-            fc.setFarPlaneDistance(lpp.get_far_plane_d());
-
-            Eigen::Matrix4f pose;
-             // /* Find cospi and sinpi */
-             float c1 = sqrt(dir[0] * dir[0] + dir[1] * dir[1]);
-             float s1 = dir[2];
-             ///* Find cosO and sinO; if gimbal lock, choose (1,0) arbitrarily */
-             float c2 = c1 ? dir[0] / c1 : 1.0;
-             float s2 = c1 ? dir[1] / c1 : 0.0;
-             //
-             //return mat3(v.x, -s2, -s1 * c2,
-             //    v.y, c2, -s1 * s2,
-             //    v.z, 0, c1);
-             pose << dir[0], -s2, -s1 * c2, position[0],
-                     dir[1], c2, -s1 * s2, position[1],
-                     dir[2], 0, c1, position[2],
-                     0.f, 0.f, 0.f, 1.f; 
-
-
-
-            fc.setCameraPose(pose);
+            Viewpoints layer = downsampled_viewpoints_perlayer[i];
+   
+   
+            // retrieve the viewpoint and the direction
+            for (size_t j = 0; j < layer.size(); j++)
+            {
+   
+                std::pair<Eigen::Vector3f, Eigen::Vector3f> viewpoint = layer[j];
+                Eigen::Vector3f position = viewpoint.first;
+                Eigen::Vector3f dir = viewpoint.second;
+                dir.normalize();
+                pcl::FrustumCulling<pcl::PointNormal> fc;
+                //set either the input cloud or voxelized cloud
+                fc.setInputCloud(cloud);
+                //fc.setInputCloud(voxel_cloud);
+                fc.setVerticalFOV(90);
+                fc.setHorizontalFOV(90);
+                fc.setNearPlaneDistance(lpp.get_near_plane_d());
+                fc.setFarPlaneDistance(lpp.get_far_plane_d());
+   
+                Eigen::Matrix4f pose;
+                 // /* Find cospi and sinpi */
+                 float c1 = sqrt(dir[0] * dir[0] + dir[1] * dir[1]);
+                 float s1 = dir[2];
+                 ///* Find cosO and sinO; if gimbal lock, choose (1,0) arbitrarily */
+                 float c2 = c1 ? dir[0] / c1 : 1.0;
+                 float s2 = c1 ? dir[1] / c1 : 0.0;
+                 //
+                 //return mat3(v.x, -s2, -s1 * c2,
+                 //    v.y, c2, -s1 * s2,
+                 //    v.z, 0, c1);
+                 pose << dir[0], -s2, -s1 * c2, position[0],
+                         dir[1], c2, -s1 * s2, position[1],
+                         dir[2], 0, c1, position[2],
+                         0.f, 0.f, 0.f, 1.f; 
+   
+   
+   
+                fc.setCameraPose(pose);
             
-            pcl::PointCloud<pcl::PointNormal>::Ptr output(new pcl::PointCloud<pcl::PointNormal>);
-            fc.filter(*output);
+                pcl::PointCloud<pcl::PointNormal>::Ptr output(new pcl::PointCloud<pcl::PointNormal>);
+                fc.filter(*output);
             
-            //go through the points and verify angle threshhold before adding
-            for (size_t k= 0; k < output->points.size(); k++)
-            {   
-                pcl::PointNormal p = output->points[k];
-                Eigen::Vector3f n(p.normal_x, p.normal_y, p.normal_z);
-                n.normalize();
-                float dot = dir.dot(n);
-                float angle = std::acos(dot / (dir.norm() * n.norm()));
-                if (angle < 60.f) {
-                    validation_cloud->points.push_back(p);
+                //go through the points and verify angle threshhold before adding
+                for (size_t k= 0; k < output->points.size(); k++)
+                {   
+                    pcl::PointNormal p = output->points[k];
+                    Eigen::Vector3f n(p.normal_x, p.normal_y, p.normal_z);
+                    n.normalize();
+                    float dot = dir.dot(n);
+                    float angle = std::acos(dot / (dir.norm() * n.norm()));
+                    if (angle < 60.f) {
+                        validation_cloud->points.push_back(p);
+                    }
                 }
+   
+                //*validation_cloud += *output;
             }
-
-            //*validation_cloud += *output;
-        }
-
-
+   
+   
     }
-
+   
     //IO voxelcloud
-    std::vector< Kernel::Point_3> points_voxel;
-    for (size_t i = 0; i < voxel_cloud->points.size(); i++)
-    {
-        points_voxel.push_back(Kernel::Point_3(voxel_cloud->points[i].x, voxel_cloud->points[i].y, voxel_cloud->points[i].z));
-    }
-    IO::write_PLY("out/source.ply", points_voxel);
-
-
-
+    //std::vector< Kernel::Point_3> points_voxel;
+    //for (size_t i = 0; i < voxel_cloud->points.size(); i++)
+    //{
+    //    points_voxel.push_back(Kernel::Point_3(voxel_cloud->points[i].x, voxel_cloud->points[i].y, voxel_cloud->points[i].z));
+    //}
+    //IO::write_PLY("out/source.ply", points_voxel);
+   
+   
+   
     //io observed vertices
     std::vector< Kernel::Point_3> points_test;
     for (size_t i = 0; i < validation_cloud->points.size(); i++)
@@ -339,12 +319,18 @@ int main(int argc, char* argv[])
     //MyMesh::segment_mesh(surface);
 
     /*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    //method_1(poly, surface, argv);
-   
+    auto start = high_resolution_clock::now();
+    method_1(poly, surface, argv);
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<seconds>(stop - start);
+    cout << "DURATION: " << duration.count() << endl;
 
     /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    method2(poly, surface, argv);
-
+    //auto start = high_resolution_clock::now();
+    //method2(poly, surface, argv);
+    //auto stop = high_resolution_clock::now();
+    //auto duration = duration_cast<seconds>(stop - start);
+    //cout << "DURATION: "<<duration.count() << endl;
 
    return EXIT_SUCCESS;
 }

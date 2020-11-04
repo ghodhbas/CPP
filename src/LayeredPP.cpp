@@ -259,7 +259,9 @@ std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<s
 		//if (MyMesh::intersect(p1,p2,bbox)) {
 
 			//remove this pair because it is not valid
-			pair_vec.erase(pair_vec.begin()+i);
+			auto idx = pair_vec.begin();
+			std::advance(idx, i);
+			pair_vec.erase(idx);
 			//can add actual distance calculation (ex diskjtra)
 			//distance_map[pair_vec[i].first][pair_vec[i].second] = 999999999999.f;
 			//distance_map[pair_vec[i].second][pair_vec[i].first] = 999999999999.f;
@@ -329,9 +331,9 @@ Edge_Graph LayeredPP::construct_MST(vector<std::pair<int, int>>& pair_vec, std::
 //TODO: FIX / Improve?
 void LayeredPP::DFS(vector<Eigen::Vector3f>& path, Node* node, Node* prev) {
 	node->visited = true;
-	
 	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
 	path.push_back(position);
+	
 
 	for (size_t i = 0; i < node->neighbours.size(); i++)
 	{	
@@ -341,6 +343,15 @@ void LayeredPP::DFS(vector<Eigen::Vector3f>& path, Node* node, Node* prev) {
 		}
 	
 	}
+	//Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
+	//path.push_back(position);
+	//if (prev != nullptr) {
+	//	//if number is written then don
+	//	Eigen::Vector3f prev_position = z->position.block(0, 0, 3, 1);
+	//	path.push_back(prev_position);
+	//	prev->visited = false;
+	//}
+	
 
 
 }
@@ -396,7 +407,7 @@ vector<Eigen::Vector3f> LayeredPP::generate_path(Edge_Graph& MST, std::vector<st
 	else {
 		//calculate distance from the set of points to last_viewpoint and pick closes
 		vector<float> d_vec;
-		for (size_t i = 1; i < MST_g.nodes.size(); i++)
+		for (size_t i = 0; i < MST_g.nodes.size(); i++)
 		{
 			Node* n = MST_g.nodes[i];
 			Eigen::Vector3f pos = n->position.block(0, 0, 3, 1);
@@ -409,7 +420,7 @@ vector<Eigen::Vector3f> LayeredPP::generate_path(Edge_Graph& MST, std::vector<st
 			cerr << "PATH GENERATION: COULDNT FIND CLOSEST to last node POINT to start the path";
 		}
 		int idx = std::distance(d_vec.begin(), smallest);
-		chosen = MST_g.nodes[idx+1];
+		chosen = MST_g.nodes[idx];
 	}
 
 

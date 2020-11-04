@@ -11,7 +11,7 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	drone = new UAV();
 
 	//create voxel grid of the point cloud
-	voxelRes = 10.f;
+	voxelRes = 25.f;
 	voxelGrid.setInputCloud(input_cloud);
 	voxelGrid.setLeafSize(voxelRes, voxelRes, voxelRes);
 	voxelGrid.initializeVoxelGrid();
@@ -36,31 +36,34 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	
 	//// 3 and 5 is used to making the BB bigger not exactly on the boundry of the cluster
    //// (sometimes it is very small set of samples and the descritization sample will not fit)
-   float maximizeSizeXY = 30.f;
-   float maximizeSizeZ = 30.f;
+   float maximizeSizeXY = 100.f;
+   float maximizeSizeZ = 100.f;
 
    //increase the index and use it with voxel res to calculate position of the srone throughout the grid
    //with everyposition check if it's in the voxel grid, if it is che ck if it is occupied
 
 	drone_start[0] = min_b[0] - ((float)maximizeSizeXY/2.f) ;//5
-	drone_start[1] = min_b[1] - ((float)maximizeSizeXY/2.f) ;//5
-	//drone_start[2] = min_b[2] - ((float)maximizeSizeZ/2.f);//
-	drone_start[2] = min_b[2];//
+	//drone_start[1] = min_b[1] - ((float)maximizeSizeXY/2.f) ;//5
+	drone_start[1] = min_b[1];//
+	drone_start[2] = min_b[2] - ((float)maximizeSizeZ/2.f);//
 
 	drone_end[0] = max_b[0] + ((float)maximizeSizeXY / 2.f);//5
-	drone_end[1] = max_b[1] + ((float)maximizeSizeXY / 2.f);//5
-	drone_end[2] = max_b[2] + ((float)maximizeSizeZ);//
+	//drone_end[1] = max_b[1] + ((float)maximizeSizeXY / 2.f);//5
+	drone_end[1] = max_b[1] + ((float)maximizeSizeXY );//5
+	drone_end[2] = max_b[2] + ((float)maximizeSizeZ / 2.f);//
 	
 
 	drone_start_index[0] = min_b_idx[0] - (((int)(maximizeSizeXY / 2)) / voxelRes);
-	drone_start_index[1] = min_b_idx[1] - (((int)(maximizeSizeXY / 2)) / voxelRes);
-	drone_start_index[2] = min_b_idx[2] ;
+	//drone_start_index[1] = min_b_idx[1] - (((int)(maximizeSizeXY / 2)) / voxelRes);
+	drone_start_index[1] = min_b_idx[1] ;
+	drone_start_index[2] = min_b_idx[2] - (((int)(maximizeSizeXY / 2)) / voxelRes);;
 	
 	
 	
 	drone_end_index[0] = max_b_idx[0] + (((int)(maximizeSizeXY / 2))/voxelRes);
-	drone_end_index[1] = max_b_idx[1] + (((int)(maximizeSizeXY / 2))/voxelRes);
-	drone_end_index[2] = max_b_idx[2] + (((int)(maximizeSizeZ) )/ voxelRes);
+	//drone_end_index[1] = max_b_idx[1] + (((int)(maximizeSizeXY / 2))/voxelRes);
+	drone_end_index[1] = max_b_idx[1] + (((int)(maximizeSizeXY)) / voxelRes);
+	drone_end_index[2] = max_b_idx[2] + (((int)(maximizeSizeZ) / 2 )/ voxelRes);
 
 	gridSize[0] = drone_end_index[0] - drone_start_index[0] +1;//
 	gridSize[1] = drone_end_index[1] - drone_start_index[1] +1;//
@@ -542,10 +545,10 @@ int PathPlanner::calculate_shortest_distance(int index_1, int index_2) {
 	{
 		Node* node = queue.front();
 		queue.pop();
+		node->visited = true;
 		//found goal destination 
 		if (node->index_int == index_2) break;
 
-		node->visited = true;
 
 		for (int i = 0; i < node->neighbours.size(); i++) {
 			Node* neighbour = node->neighbours[i];
@@ -553,19 +556,21 @@ int PathPlanner::calculate_shortest_distance(int index_1, int index_2) {
 				continue;
 			}
 			//update distance
-			if (distances[neighbour->index_int] > distances[node->index_int] + 1) {
+			if (distances[neighbour->index_int] > (distances[node->index_int] + 1)) {
 				distances[neighbour->index_int] = distances[node->index_int] + 1;
+				
 				queue.push(neighbour);
 			}
-
 		}
+
+
 	}
 	
 	return distances[index_2];
 }
 
 
-std::map<int, std::map<int, int>> PathPlanner::calculate_distances(std::vector<int>& viewpoint_graph_idx, vector<std::pair<int, int>>& pair_vec ) {
+std::map<int, std::map<int, int>> PathPlanner::calculate_distances(std::vector<int>& viewpoint_graph_idx, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface) {
 	//get the indecis of the viewpoints in the gris and in the graph
 
 	//key: index of source in the graph
@@ -575,18 +580,28 @@ std::map<int, std::map<int, int>> PathPlanner::calculate_distances(std::vector<i
 	
 	combinations(viewpoint_graph_idx, pair_vec);
 
+
+
 	for (int i = 0; i < pair_vec.size(); i++)
 	{
+	
 		//cout << "PAIR: " << pair_vec[i].first << ", " << pair_vec[i].second << endl;
 		int distance = calculate_shortest_distance(pair_vec[i].first, pair_vec[i].second);
 		//cout << "Shortest distance = " << distance << endl << endl;
-
+		
 		//save distance from one cell to the other
-		distance_map[pair_vec[i].first][pair_vec[i].second] = distance;
-		distance_map[pair_vec[i].second][pair_vec[i].first] = distance;
+		if (distance == (INT_MAX - 2)) {
+
+			distance_map[pair_vec[i].first][pair_vec[i].second] = distance ;
+			distance_map[pair_vec[i].second][pair_vec[i].first] = distance ;
+		}
+		else {
+			distance_map[pair_vec[i].first][pair_vec[i].second] = distance * voxelRes;
+			distance_map[pair_vec[i].second][pair_vec[i].first] = distance * voxelRes;
+		}
 
 	}
-	cout << "nb pairs: " << pair_vec.size() << endl<<endl;
+	//cout << "nb pairs: " << pair_vec.size() << endl<<endl;
 
 
 	//distance map can also be seen as an edge map with duplicates
@@ -599,6 +614,7 @@ std::map<int, std::map<int, int>> PathPlanner::calculate_distances(std::vector<i
 				  //2. Pick the smallest edge.Check if it forms a cycle with the spanning tree formed so far.If cycle is not formed, include this edge.Else, discard it.
 				  //3. Repeat step#2 until there are(V - 1) edges in the spanning tree.
 Edge_Graph PathPlanner::construct_MST(vector<std::pair<int, int>>& pair_vec, std::map<int, std::map<int, int>>& distance_map) {
+	int total_distance = 0;
 	//spanning tree
 	Edge_Graph MST = Edge_Graph(distance_map.size());
 	
@@ -628,10 +644,14 @@ Edge_Graph PathPlanner::construct_MST(vector<std::pair<int, int>>& pair_vec, std
 		if (!isCycle(tmp)) {
 			//add the edge to the MST
 			MST.add_edge(e);
+			//weight time cube size
+			total_distance += e.weight;
 		}
 
 		idx--;
 	}
+
+	cout << "LENGTH OF MST: " << total_distance << endl;
 
 	return MST;
 }
@@ -642,6 +662,7 @@ void PathPlanner::DFS(vector<Eigen::Vector3f>& path, Node* node) {
 
 	Eigen::Vector3f position = node->position.block(0, 0, 3, 1);
 	path.push_back(position);
+
 	for (size_t i = 0; i < node->neighbours.size(); i++)
 	{
 		if (!node->neighbours[i]->visited) DFS(path, node->neighbours[i]);
