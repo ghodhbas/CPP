@@ -73,7 +73,7 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
     cloud->points = cloudPtr->points;
     cloudCopy->points = cloud->points;
 
-    voxelRes = 25.f;
+    voxelRes = 20.f;
     frame_id = "world";
     OriginalVoxelsSize = 0.0;
     id = 0.0;

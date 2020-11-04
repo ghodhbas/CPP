@@ -229,7 +229,7 @@ void LayeredPP::combinations(const vector<int>& elems, vector<std::pair<int, int
 }
 
 
-std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& viewpoints, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface) {
+std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& viewpoints, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface, std::pair<pcl::PointXYZ, pcl::PointXYZ>&  bbox) {
 	//get the indecis of the viewpoints in the gris and in the graph
 	cout << "NB viewpoints in layer: " << viewpoints.size() << endl;
 	//key: index of source in the graph
@@ -244,6 +244,8 @@ std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<s
 
 	//for (int i = 0; i < pair_vec.size(); i++)
 	//{
+
+
 	while (i < pair_vec.size())
 	{
 		//cout << "PAIR: " << pair_vec[i].first << ", " << pair_vec[i].second << endl;
@@ -253,10 +255,9 @@ std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<s
 		//use ray box inter
 		
 		Eigen::Vector3f Hit;
-		CGAL::Bbox_3 bbox = CGAL::Polygon_mesh_processing::bbox(surface);
 		//if(MyMesh::checkLineBox(Eigen::Vector3f(bbox.xmin(), bbox.ymin(),bbox.zmin()) , Eigen::Vector3f(bbox.xmax(), bbox.ymax(), bbox.zmax()), p1,p2,  Hit)){
-		if (MyMesh::ray_box_interstction(surface, p1, p2)) {
-		//if (MyMesh::intersect(p1,p2,bbox)) {
+		//if (MyMesh::ray_box_interstction(surface, p1, p2)) {
+		if (MyMesh::intersect(p1,p2,bbox)) {
 
 			//remove this pair because it is not valid
 			auto idx = pair_vec.begin();

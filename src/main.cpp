@@ -101,7 +101,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 //TODO in MST if the path intersects with mesh choose another one?
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.2f, 50.f);
+    LayeredPP lpp(1.f, 30.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -133,12 +133,12 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 5: split the  viewpoints into layers
-    int nb_layers = 12;
+    int nb_layers = 10;
     vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(viewpoints_cloud, nb_layers, min_max);
 
 
     //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 50.f);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 20.f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
         pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
@@ -159,12 +159,27 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
     vector< vector<Eigen::Vector3f >> paths_list;
     Eigen::Vector3f last_node(0.f,0.f,0.f);
+    //yy increment in layer
+    min_max = MyMesh::get_cloud_BBOX(cloud);
+    float y_incr = (min_max.second.y- min_max.first.y)/(float)nb_layers;
     for (size_t i = 0; i < downsampled_viewpoints_perlayer.size(); i++)
-    {
+    {   
+        //make list of voxels from mesh in the layer
+        //get upper and lower
+        float lower = min_max.first.y * (i + 1);
+        float upper = min_max.first.y * (i + 2);
+        pcl::PointCloud<pcl::PointNormal>::Ptr layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+        for (size_t i = 0; i < cloud->points.size(); i++)
+        {
+            pcl::PointNormal point = cloud->at(i);
+            if (point.y >= lower && point.y <= upper) layer_cloud->points.push_back(point);
+        }
+        std::pair<pcl::PointXYZ, pcl::PointXYZ> layer_bbox = MyMesh::get_cloud_BBOX(layer_cloud);
+
         //construct list of viewpoints  for that layer
         Viewpoints layer = downsampled_viewpoints_perlayer[i];
         vector<std::pair<int, int>> pair_vec;
-        std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec, surface);
+        std::map<int, std::map<int, float>> distance_map = lpp.calculate_distances(layer, pair_vec, surface, layer_bbox);
         //cout << "Constructing Minimun Spanning tree between solution viewpoints..." << endl;
 
         Edge_Graph MST = lpp.construct_MST(pair_vec, distance_map);
@@ -191,7 +206,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
         vector<Eigen::Vector3f> path = paths_list[i];
         //IO::write_PLY(std::string("out/path_").append(std::to_string(i)+".ply"), path);
         int idx = -1;
-        float d = 9999999.f;
+        //float d = 9999999.f;
         for (size_t j = 0; j < path.size(); j++)
         {
             final_path.push_back(path[j]);
@@ -211,7 +226,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
         //validationcloud output
         pcl::PointCloud<pcl::PointNormal>::Ptr validation_cloud(new pcl::PointCloud<pcl::PointNormal>);
-   
+    
         //test for completeneness
         pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud(new pcl::PointCloud<pcl::PointNormal>);   // using volumetric data instead of actual mesh  ---- can switch and test on actual mesh
         *voxel_cloud = mesh_voxelgrid.getFilteredPointCloud();
@@ -219,12 +234,12 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
         for (size_t i = 0; i < downsampled_viewpoints_perlayer.size(); i++)
         {
             Viewpoints layer = downsampled_viewpoints_perlayer[i];
-   
-   
+    
+    
             // retrieve the viewpoint and the direction
             for (size_t j = 0; j < layer.size(); j++)
             {
-   
+    
                 std::pair<Eigen::Vector3f, Eigen::Vector3f> viewpoint = layer[j];
                 Eigen::Vector3f position = viewpoint.first;
                 Eigen::Vector3f dir = viewpoint.second;
@@ -237,7 +252,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                 fc.setHorizontalFOV(90);
                 fc.setNearPlaneDistance(lpp.get_near_plane_d());
                 fc.setFarPlaneDistance(lpp.get_far_plane_d());
-   
+    
                 Eigen::Matrix4f pose;
                  // /* Find cospi and sinpi */
                  float c1 = sqrt(dir[0] * dir[0] + dir[1] * dir[1]);
@@ -253,9 +268,9 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                          dir[1], c2, -s1 * s2, position[1],
                          dir[2], 0, c1, position[2],
                          0.f, 0.f, 0.f, 1.f; 
-   
-   
-   
+    
+    
+    
                 fc.setCameraPose(pose);
             
                 pcl::PointCloud<pcl::PointNormal>::Ptr output(new pcl::PointCloud<pcl::PointNormal>);
@@ -273,20 +288,20 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                         validation_cloud->points.push_back(p);
                     }
                 }
-   
+    
                 //*validation_cloud += *output;
             }
+    
    
-   
-    }
+         }
    
     //IO voxelcloud
-    //std::vector< Kernel::Point_3> points_voxel;
-    //for (size_t i = 0; i < voxel_cloud->points.size(); i++)
-    //{
-    //    points_voxel.push_back(Kernel::Point_3(voxel_cloud->points[i].x, voxel_cloud->points[i].y, voxel_cloud->points[i].z));
-    //}
-    //IO::write_PLY("out/source.ply", points_voxel);
+    std::vector< Kernel::Point_3> points_voxel;
+    for (size_t i = 0; i < voxel_cloud->points.size(); i++)
+    {
+        points_voxel.push_back(Kernel::Point_3(voxel_cloud->points[i].x, voxel_cloud->points[i].y, voxel_cloud->points[i].z));
+    }
+    IO::write_PLY("out/source.ply", points_voxel);
    
    
    
@@ -319,18 +334,18 @@ int main(int argc, char* argv[])
     //MyMesh::segment_mesh(surface);
 
     /*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    auto start = high_resolution_clock::now();
-    method_1(poly, surface, argv);
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<seconds>(stop - start);
-    cout << "DURATION: " << duration.count() << endl;
-
-    /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
     //auto start = high_resolution_clock::now();
-    //method2(poly, surface, argv);
+    //method_1(poly, surface, argv);
     //auto stop = high_resolution_clock::now();
     //auto duration = duration_cast<seconds>(stop - start);
-    //cout << "DURATION: "<<duration.count() << endl;
+    //cout << "DURATION: " << duration.count() << endl;
+
+    /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
+    auto start = high_resolution_clock::now();
+    method2(poly, surface, argv);
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<seconds>(stop - start);
+    cout << "DURATION: "<<duration.count() << endl;
 
    return EXIT_SUCCESS;
 }

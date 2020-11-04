@@ -11,7 +11,7 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	drone = new UAV();
 
 	//create voxel grid of the point cloud
-	voxelRes = 25.f;
+	voxelRes = 20.f;
 	voxelGrid.setInputCloud(input_cloud);
 	voxelGrid.setLeafSize(voxelRes, voxelRes, voxelRes);
 	voxelGrid.initializeVoxelGrid();

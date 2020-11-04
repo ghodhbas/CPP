@@ -45,7 +45,7 @@ namespace MyMesh {
    bool checkLineBox(Eigen::Vector3f B1, Eigen::Vector3f B2, Eigen::Vector3f L1, Eigen::Vector3f L2, Eigen::Vector3f& Hit);
 
 
-   bool intersect(const Eigen::Vector3f p1, Eigen::Vector3f p2, CGAL::Bbox_3 bbox);
+   bool intersect(const Eigen::Vector3f p1, Eigen::Vector3f p2, std::pair<pcl::PointXYZ, pcl::PointXYZ>& bbox);
 
 }
 

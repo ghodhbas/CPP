@@ -384,18 +384,18 @@ namespace MyMesh {
     }
 
 
-    bool intersect(const Eigen::Vector3f p1, Eigen::Vector3f p2, CGAL::Bbox_3 bbox)
+    bool intersect(const Eigen::Vector3f p1, Eigen::Vector3f p2, std::pair<pcl::PointXYZ, pcl::PointXYZ>& bbox)
     {   
         Eigen::Vector3f r = p2 - p1;
         r.normalize();
 
-        float tmin = (bbox.xmin() - p1[0]) / r[0];
-        float tmax = (bbox.xmax() - p1[0]) / r[0];
+        float tmin = (bbox.first.x - p1[0]) / r[0];
+        float tmax = (bbox.second.x - p1[0]) / r[0];
 
         if (tmin > tmax) swap(tmin, tmax);
 
-        float tymin = (bbox.ymin() - p1[1]) / r[1];
-        float tymax = (bbox.ymax() - p1[1]) / r[1];
+        float tymin = (bbox.first.y - p1[1]) / r[1];
+        float tymax = (bbox.second.y - p1[1]) / r[1];
 
         if (tymin > tymax) swap(tymin, tymax);
 
@@ -408,8 +408,8 @@ namespace MyMesh {
         if (tymax < tmax)
             tmax = tymax;
 
-        float tzmin = (bbox.zmin() - p1[2]) / r[2];
-        float tzmax = (bbox.zmax() - p1[2]) / r[2];
+        float tzmin = (bbox.first.z - p1[2]) / r[2];
+        float tzmax = (bbox.second.z - p1[2]) / r[2];
 
         if (tzmin > tzmax) swap(tzmin, tzmax);
 
