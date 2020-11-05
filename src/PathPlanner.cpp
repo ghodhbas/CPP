@@ -11,7 +11,7 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	drone = new UAV();
 
 	//create voxel grid of the point cloud
-	voxelRes = 20.f;
+	voxelRes = 0.5f;
 	voxelGrid.setInputCloud(input_cloud);
 	voxelGrid.setLeafSize(voxelRes, voxelRes, voxelRes);
 	voxelGrid.initializeVoxelGrid();
@@ -36,34 +36,34 @@ PathPlanner::PathPlanner(pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud) {
 	
 	//// 3 and 5 is used to making the BB bigger not exactly on the boundry of the cluster
    //// (sometimes it is very small set of samples and the descritization sample will not fit)
-   float maximizeSizeXY = 100.f;
-   float maximizeSizeZ = 100.f;
+   float maximizeSizeXZ = 4.5f;
+   float maximizeSizeY = 3.f;
 
    //increase the index and use it with voxel res to calculate position of the srone throughout the grid
    //with everyposition check if it's in the voxel grid, if it is che ck if it is occupied
 
-	drone_start[0] = min_b[0] - ((float)maximizeSizeXY/2.f) ;//5
+	drone_start[0] = min_b[0] - ((float)maximizeSizeXZ/2.f) ;//5
 	//drone_start[1] = min_b[1] - ((float)maximizeSizeXY/2.f) ;//5
 	drone_start[1] = min_b[1];//
-	drone_start[2] = min_b[2] - ((float)maximizeSizeZ/2.f);//
+	drone_start[2] = min_b[2] - ((float)maximizeSizeXZ/2.f);//
 
-	drone_end[0] = max_b[0] + ((float)maximizeSizeXY / 2.f);//5
+	drone_end[0] = max_b[0] + ((float)maximizeSizeXZ / 2.f);//5
 	//drone_end[1] = max_b[1] + ((float)maximizeSizeXY / 2.f);//5
-	drone_end[1] = max_b[1] + ((float)maximizeSizeXY );//5
-	drone_end[2] = max_b[2] + ((float)maximizeSizeZ / 2.f);//
+	drone_end[1] = max_b[1] + ((float)maximizeSizeY);//5
+	drone_end[2] = max_b[2] + ((float)maximizeSizeXZ / 2.f);//
 	
 
-	drone_start_index[0] = min_b_idx[0] - (((int)(maximizeSizeXY / 2)) / voxelRes);
+	drone_start_index[0] = min_b_idx[0] - (((int)(maximizeSizeXZ / 2)) / voxelRes);
 	//drone_start_index[1] = min_b_idx[1] - (((int)(maximizeSizeXY / 2)) / voxelRes);
 	drone_start_index[1] = min_b_idx[1] ;
-	drone_start_index[2] = min_b_idx[2] - (((int)(maximizeSizeXY / 2)) / voxelRes);;
+	drone_start_index[2] = min_b_idx[2] - (((int)(maximizeSizeXZ / 2)) / voxelRes);;
 	
 	
 	
-	drone_end_index[0] = max_b_idx[0] + (((int)(maximizeSizeXY / 2))/voxelRes);
+	drone_end_index[0] = max_b_idx[0] + (((int)(maximizeSizeXZ / 2))/voxelRes);
 	//drone_end_index[1] = max_b_idx[1] + (((int)(maximizeSizeXY / 2))/voxelRes);
-	drone_end_index[1] = max_b_idx[1] + (((int)(maximizeSizeXY)) / voxelRes);
-	drone_end_index[2] = max_b_idx[2] + (((int)(maximizeSizeZ) / 2 )/ voxelRes);
+	drone_end_index[1] = max_b_idx[1] + (((int)(maximizeSizeY)) / voxelRes);
+	drone_end_index[2] = max_b_idx[2] + (((int)(maximizeSizeXZ) / 2 )/ voxelRes);
 
 	gridSize[0] = drone_end_index[0] - drone_start_index[0] +1;//
 	gridSize[1] = drone_end_index[1] - drone_start_index[1] +1;//

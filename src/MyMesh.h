@@ -37,7 +37,7 @@ namespace MyMesh {
    void remove_points_inside_mesh(Polyhedron poly, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& viewpoints, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& final_viewpoints, std::vector< Kernel::Point_3>& viewpoints_cloud);
     
 
-   bool ray_box_interstction(SurfaceMesh& surface, Eigen::Vector3f p1, Eigen::Vector3f p2);
+   bool ray_box_interstction(SurfaceMesh& surface, Eigen::Vector3f p1, Eigen::Vector3f p2, Tree& tree);
 
 
    bool GetIntersection(float fDst1, float fDst2, Eigen::Vector3f P1, Eigen::Vector3f P2, Eigen::Vector3f& Hit);
