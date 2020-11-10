@@ -179,6 +179,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\ExploratoryPlanner.cpp" />
     <ClCompile Include="src\LayeredPP.cpp" />
     <ClCompile Include="src\graph.cpp" />
     <ClCompile Include="src\IO.cpp" />
@@ -190,6 +191,7 @@
     <ClCompile Include="src\VoxelGridOcclusionEstimationT.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ExploratoryPlanner.h" />
     <ClInclude Include="src\LayeredPP.h" />
     <ClInclude Include="src\graph.h" />
     <ClInclude Include="src\PathPlanner.h" />
