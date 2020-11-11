@@ -1,25 +1,44 @@
 #include "ExploratoryPlanner.h"
-
+#
 
 
 namespace ExploratoryPlanner {
 
-    float calculate_huristic(pcl::PointNormal currentpoint, pcl::PointNormal point) {
+    float calculate_huristic(pcl::PointNormal currentpoint, pcl::PointNormal point, Eigen::Vector3f view_dir, pcl::PointNormal prevPoint) {
         //distance
+        float d = pcl::euclideanDistance(currentpoint, point);
 
+        //angle --TODO: add to huristic the angle between current view dir and next view dir?
+        
+        float angle;
+        Eigen::Vector3f next_dir(point.x - currentpoint.x, point.y - currentpoint.y, point.z - currentpoint.z);
+        next_dir.normalize();
+        Eigen::Vector3f prev_dir(currentpoint.x-prevPoint.x,  currentpoint.y - prevPoint.y,  currentpoint.z - prevPoint.z);
+        prev_dir.normalize();
+        if (std::fabsf(prevPoint.x - currentpoint.x) < EPSILON && std::fabsf(prevPoint.y - currentpoint.y) < EPSILON && std::fabsf(prevPoint.z - currentpoint.z) < EPSILON) {
 
-        //angle
+            //if first point the angle is between view dir and  x-z plane -- divide by norm if not normalized
+            angle = asinf(next_dir.dot(Eigen::Vector3f(0.f, 1.f, 0.f)));
+        }
+        else {
+            //divide by norm if not normalized
+            angle = acosf(next_dir.dot(prev_dir));
+        }
+        angle = angle * (180.f / M_PI);
 
-
+        //angle threshhold
+        //if(angle> 120.f)return 999999999.f;
 
         //coverage? -- instead of coverage in huristic we will cover all viewpoints that have been downsampeled
 
-        return 0.f;
+        return 2.f*angle+ 9.f*d;
     }
 
 
 
-	void generate_path(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, SurfaceMesh& surface) {
+    vector<Eigen::Vector3f >  generate_path(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, SurfaceMesh& surface, Viewpoints& final_viewpoints) {
+
+        vector<Eigen::Vector3f > path;
 
         //build map to mark if index is visited
         std::map<int, float> visited;
@@ -31,12 +50,16 @@ namespace ExploratoryPlanner {
         //choose starting point 
         int current_idx = 0;
         pcl::PointNormal currentPoint = downsampled_viewpoints->points[0];
+        visited[current_idx] = true;
         int nb_visted = 1;
+        pcl::PointNormal prevPoint = currentPoint;
+
+        path.push_back(viewpoints_list[current_idx].first);
 
         // Neighbors within radius search
         pcl::KdTreeFLANN<pcl::PointNormal> kdtree;
         kdtree.setInputCloud(downsampled_viewpoints);
-        float radius = 2.f; //search radius
+        float radius = 300.f; //search radius
 
         Tree tree(faces(surface).first, faces(surface).second, surface);
         
@@ -46,7 +69,8 @@ namespace ExploratoryPlanner {
             std::vector<int> pointIdxRadiusSearch;
             std::vector<float> pointRadiusSquaredDistance;
 
-            std::vector<float> cost_list;
+            float min_cost = 999999999.f;
+            int min_cost_idx = 9999999.f;
 
             //get neighbouring points within a certain distance
             if (kdtree.radiusSearch(currentPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
@@ -55,6 +79,9 @@ namespace ExploratoryPlanner {
                     //skip visited viewpoints
                     if (visited[pointIdxRadiusSearch[i]]) 
                         continue;
+
+                    //if ( std::fabsf(point.x - currentPoint.x)< EPSILON && std::fabsf(point.y - currentPoint.y) < EPSILON && std::fabsf(point.z - currentPoint.z) < EPSILON)  continue;
+                    //if (pointIdxRadiusSearch[i] == current_idx)continue;
 
 
                     pcl::PointNormal point = (*downsampled_viewpoints)[pointIdxRadiusSearch[i]];
@@ -65,13 +92,37 @@ namespace ExploratoryPlanner {
 
 
                     //calculate hurestic for point
-                    cost_list.push_back(calculate_huristic(currentPoint, point));
+                    Eigen::Vector3f view_dir = viewpoints_list[pointIdxRadiusSearch[i]].second;
+                    float cost = calculate_huristic(currentPoint, point, view_dir, prevPoint);
+                    if (cost < min_cost) {
+                        min_cost = cost;
+                        min_cost_idx = i;
+                    }
 
                     //std::cout << "    " << point.x
                     //    << " " << point.y
                     //    << " " << point.z
                     //    << " (squared distance: " << pointRadiusSquaredDistance[i] << ")" << std::endl;
                 }
+
+
+                //select i with the lowest huristic call
+                if (min_cost_idx == 9999999.f) {
+                    cout << "could not find another close unvisited point" << endl;
+                    break;
+                }
+                ///update current
+                prevPoint = currentPoint;
+                currentPoint = (*downsampled_viewpoints)[pointIdxRadiusSearch[min_cost_idx]];
+                visited[pointIdxRadiusSearch[min_cost_idx]] = true;
+                path.push_back(viewpoints_list[pointIdxRadiusSearch[min_cost_idx]].first);
+                final_viewpoints.push_back(viewpoints_list[pointIdxRadiusSearch[min_cost_idx]]);
+                //increase number of points visited
+                nb_visted++;
+               
+
+
+
             }
             else
             {
@@ -82,13 +133,11 @@ namespace ExploratoryPlanner {
             }
 
           
-            //update current
-            //select i with the lowest huristic call
-
-            //increase number of points visited
-            //set visted node to true
+            
         }
 
-        
+        return path;
 	}
+
+   
 }

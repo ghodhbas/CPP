@@ -18,7 +18,7 @@ public:
 	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> generate_viewpoints(pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> layer);
 	
 
-	std::map<int, std::map<int, float>>  calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>&  viewpoints, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface, std::pair<pcl::PointXYZ, pcl::PointXYZ>& bbox);
+	std::map<int, std::map<int, float>>  calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>&  viewpoints, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface, std::pair<pcl::PointXYZ, pcl::PointXYZ>& bbox, Tree& tree);
 
 	Edge_Graph construct_MST(vector<std::pair<int, int>>& pair_vec , std::map<int, std::map<int, float>>& distance_map);
 	vector<Eigen::Vector3f> generate_path(Edge_Graph& MST, std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& layer, Eigen::Vector3f& last_node);

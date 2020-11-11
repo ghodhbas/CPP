@@ -7,10 +7,14 @@
 #include <pcl/filters/voxel_grid_occlusion_estimation.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include "MyMesh.h"
+#include "pcl/common/distances.h"
+#include "pcl/common/angles.h"
 
 typedef std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>  Viewpoints;
 typedef std::pair<Eigen::Vector3f, Eigen::Vector3f>  Viewpoint;
 using namespace std;
+
+#define EPSILON 0.000001f
 
 class Viewpoint_Comparator {
 public:
@@ -26,8 +30,8 @@ public:
 
 namespace ExploratoryPlanner
 {	
-	float calculate_huristic(pcl::PointNormal currentPoint, pcl::PointNormal point);
+	float calculate_huristic(pcl::PointNormal currentPoint, pcl::PointNormal point, Eigen::Vector3f view_dir, pcl::PointNormal prevPoint);
 
-	void generate_path(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, SurfaceMesh& surface);
+	vector<Eigen::Vector3f > generate_path(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, SurfaceMesh& surface, Viewpoints& final_viewpoints);
 }
 

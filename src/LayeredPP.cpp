@@ -229,7 +229,7 @@ void LayeredPP::combinations(const vector<int>& elems, vector<std::pair<int, int
 }
 
 
-std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& viewpoints, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface, std::pair<pcl::PointXYZ, pcl::PointXYZ>&  bbox) {
+std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& viewpoints, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface, std::pair<pcl::PointXYZ, pcl::PointXYZ>&  bbox, Tree& tree) {
 	//get the indecis of the viewpoints in the gris and in the graph
 	cout << "NB viewpoints in layer: " << viewpoints.size() << endl;
 	//key: index of source in the graph
@@ -244,7 +244,6 @@ std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<s
 
 	//for (int i = 0; i < pair_vec.size(); i++)
 	//{
-	Tree tree(faces(surface).first, faces(surface).second, surface);
 
 	while (i < pair_vec.size())
 	{
@@ -256,7 +255,7 @@ std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<s
 		
 		Eigen::Vector3f Hit;
 		//if(MyMesh::checkLineBox(Eigen::Vector3f(bbox.xmin(), bbox.ymin(),bbox.zmin()) , Eigen::Vector3f(bbox.xmax(), bbox.ymax(), bbox.zmax()), p1,p2,  Hit)){
-		if (MyMesh::ray_box_interstction(surface, p1, p2,tree)) {
+		if (MyMesh::ray_box_interstction(surface, p1, p2, tree)) {
 		//if (MyMesh::intersect(p1,p2,bbox)) {
 
 			//remove this pair because it is not valid
