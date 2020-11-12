@@ -10,7 +10,7 @@
 #include <pcl/filters/frustum_culling.h>
 #include <chrono> 
 #include "ExploratoryPlanner.h"
-using namespace std::chrono;
+using namespace std;
 
 float calculate_distance(vector<Eigen::Vector3f > path) {
 
@@ -69,20 +69,6 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     cout << "Number of viewpoints to cover the paths " << Solution.size() <<endl<< endl;
 
 
-    //GEnerate output (colored surface + viewpoints)
-    //std::vector< Kernel::Point_3> output_viewpoints_cloud;
-    //for (size_t i = 0; i < Solution.size(); i++)
-    //{
-    //    Eigen::Matrix4f pose = Solution[i].first;
-    //    Eigen::Vector3f coord = pose.block(0, 3, 3, 1);
-    //    output_viewpoints_cloud.push_back(Kernel::Point_3(coord.x(), coord.y(), coord.z()));
-    //    MyMesh::color_visible_surface(Solution[i].second, surface);
-    //}
-    ////output mesh
-    //IO::write_PLY(argv[3], surface);
-    ////output point cloud for viewpoints
-    //IO::write_PLY(argv[2], output_viewpoints_cloud);
-
 
     //saves the indices withion the graph where the viewpoints are located
     cout << "Graph Construction from Voxel Grid..." << endl;
@@ -100,7 +86,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     cout << "MST CONSTRUCTED" << endl<<endl;
 
     vector<Eigen::Vector3f > path = pp.generate_path(MST);
-    IO::write_PLY(argv[4], path);
+    IO::write_PLY(argv[3], path);
 
     //calculate path distance
     cout << "TOTAL DISTANCE: " << calculate_distance(path);
@@ -162,7 +148,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 35.f);
+    LayeredPP lpp(0.5f, 5.5f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -200,7 +186,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 40.f);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 5.5f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
         pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
@@ -251,7 +237,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
         //cout << "MST CONSTRUCTED" << endl << endl;
         //select the node that is the closest to the end of the previous path
         vector<Eigen::Vector3f > path = lpp.generate_path(MST, layer, last_node);
-        //IO::write_PLY(argv[4], path);
+        //IO::write_PLY(argv[3], path);
         //cout << "path done" << endl;
         //pick the closes point to the last point in the previous path as a start point for solving the MST
         paths_list.push_back(path);
@@ -281,7 +267,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 
-    IO::write_PLY(argv[4], final_path);
+    IO::write_PLY(argv[3], final_path);
     cout << "path done" << endl;
 
 
@@ -347,7 +333,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                     n.normalize();
                     float dot = dir.dot(n);
                     float angle = std::acos(dot / (dir.norm() * n.norm()));
-                    if (angle < 60.f) {
+                    if (angle < 70.f) {
                         validation_cloud->points.push_back(p);
                     }
                 }
@@ -388,7 +374,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 35.f);
+    LayeredPP lpp(0.5f, 5.2f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -401,7 +387,7 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 1.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 2.f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
 
 
@@ -421,7 +407,7 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 5: downsample viewepoints    
-    float ViewpointvoxelRes = 34.5f;
+    float ViewpointvoxelRes =4.8f;
     pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> downsampled_viewpoints_grid;
     //allow for normal downsampling with position
     downsampled_viewpoints_grid.setDownsampleAllData(true);
@@ -452,7 +438,7 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 
-    IO::write_PLY(argv[4], final_path);
+    IO::write_PLY(argv[3], final_path);
     cout << "path done" << endl;
     
     //calculate path distance
@@ -557,19 +543,28 @@ int main(int argc, char* argv[])
     //cout << "DURATION: " << duration.count() << endl;
 
     /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    //auto start = high_resolution_clock::now();
-    //method2(poly, surface, argv);
-    //auto stop = high_resolution_clock::now();
-    //auto duration = duration_cast<seconds>(stop - start);
-    //cout << "DURATION: "<<duration.count() << endl;
+    cout <<" argv[2]: "<< argv[2] << endl;
+    string method = argv[2];
+    if (method._Equal("1")){
 
+        auto start = std::chrono::high_resolution_clock::now();
+        method2(poly, surface, argv);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+        std::cout << "DURATION: " << duration.count() << endl;
+
+    }
 
     /*--------------------------------  METHOD 3: Exploratory with huristic--------           START FINDING PATH ALGORITHM    ---------------------          */
-    auto start = high_resolution_clock::now();
-    method3(poly, surface, argv);
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<seconds>(stop - start);
-    cout << "DURATION: " << duration.count() << endl;
+    if (method._Equal("2")) {
+        auto start = std::chrono::high_resolution_clock::now();
+        method3(poly, surface, argv);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+        std::cout << "DURATION: " << duration.count() << endl;
+
+    }
+   
 
 
    return EXIT_SUCCESS;

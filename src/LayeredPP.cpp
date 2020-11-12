@@ -253,15 +253,15 @@ std::map<int, std::map<int, float>> LayeredPP::calculate_distances(std::vector<s
 
 		//use ray box inter
 		
-		Eigen::Vector3f Hit;
+		//Eigen::Vector3f Hit;
 		//if(MyMesh::checkLineBox(Eigen::Vector3f(bbox.xmin(), bbox.ymin(),bbox.zmin()) , Eigen::Vector3f(bbox.xmax(), bbox.ymax(), bbox.zmax()), p1,p2,  Hit)){
 		if (MyMesh::ray_box_interstction(surface, p1, p2, tree)) {
 		//if (MyMesh::intersect(p1,p2,bbox)) {
 
 			//remove this pair because it is not valid
 			auto idx = pair_vec.begin();
-			std::advance(idx, i);
-			pair_vec.erase(idx);
+			//std::advance(idx, i);
+			pair_vec.erase(idx+i);
 			//can add actual distance calculation (ex diskjtra)
 			//distance_map[pair_vec[i].first][pair_vec[i].second] = 999999999999.f;
 			//distance_map[pair_vec[i].second][pair_vec[i].first] = 999999999999.f;
@@ -342,6 +342,7 @@ void LayeredPP::DFS(vector<Eigen::Vector3f>& path, Node* node, Node* prev) {
 		if (!node->neighbours[i]->visited) {
 			DFS(path, node->neighbours[i], node);
 		}
+		path.push_back(position);
 	
 	}
 	//Eigen::Vector3f position = node->position.block(0, 0, 3, 1);

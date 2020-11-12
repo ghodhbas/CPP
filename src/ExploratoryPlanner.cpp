@@ -18,7 +18,7 @@ namespace ExploratoryPlanner {
         if (std::fabsf(prevPoint.x - currentpoint.x) < EPSILON && std::fabsf(prevPoint.y - currentpoint.y) < EPSILON && std::fabsf(prevPoint.z - currentpoint.z) < EPSILON) {
 
             //if first point the angle is between view dir and  x-z plane -- divide by norm if not normalized
-            angle = asinf(next_dir.dot(Eigen::Vector3f(0.f, 1.f, 0.f)));
+            angle = asinf(next_dir.dot(Eigen::Vector3f(0.f, 0.f, 1.f)));
         }
         else {
             //divide by norm if not normalized
@@ -31,7 +31,7 @@ namespace ExploratoryPlanner {
 
         //coverage? -- instead of coverage in huristic we will cover all viewpoints that have been downsampeled
 
-        return 2.f*angle+ 9.f*d;
+        return 2.f*angle+ 7.f*d;
     }
 
 
@@ -59,7 +59,7 @@ namespace ExploratoryPlanner {
         // Neighbors within radius search
         pcl::KdTreeFLANN<pcl::PointNormal> kdtree;
         kdtree.setInputCloud(downsampled_viewpoints);
-        float radius = 300.f; //search radius
+        float radius = 30.f; //search radius
 
         Tree tree(faces(surface).first, faces(surface).second, surface);
         
