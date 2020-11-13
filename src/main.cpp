@@ -369,10 +369,6 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 
-
-
-
-
 void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     LayeredPP lpp(0.5f, 5.2f);
 
@@ -502,13 +498,189 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
      }
 
 
-    //IO voxelcloud
-    //std::vector< Kernel::Point_3> points_voxel;
-    //for (size_t i = 0; i < voxel_cloud->points.size(); i++)
-    //{
-    //    points_voxel.push_back(Kernel::Point_3(voxel_cloud->points[i].x, voxel_cloud->points[i].y, voxel_cloud->points[i].z));
-    //}
-    //IO::write_PLY("out/source.ply", points_voxel);
+    //io observed vertices
+    std::vector< Kernel::Point_3> points_test;
+    for (size_t i = 0; i < validation_cloud->points.size(); i++)
+    {
+        points_test.push_back(Kernel::Point_3(validation_cloud->points[i].x, validation_cloud->points[i].y, validation_cloud->points[i].z));
+    }
+    IO::write_PLY("out/validation.ply", points_test);
+}
+
+
+
+
+void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
+    LayeredPP lpp(0.5f, 45.f);
+    int nb_layers = 14;
+
+    // Step 1 calculate per vertex normals
+    std::map<poly_vertex_descriptor, Vector> vnormals;
+    CGAL::Polygon_mesh_processing::compute_vertex_normals(poly, boost::make_assoc_property_map(vnormals));
+
+
+    //Step 2: convert surface mesh into point cloud that has normals 
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+    MyMesh::convert_to_pointcloud(poly, cloud, vnormals);
+
+
+    //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 2.f);
+    cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
+
+
+
+    //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
+    typedef std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>  Viewpoints;
+    Viewpoints viewpoints = lpp.generate_viewpoints(mesh_voxelgrid);
+    pcl::PointCloud<pcl::PointNormal>::Ptr viewpoints_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+    for (size_t i = 0; i < viewpoints.size(); i++)
+    {
+
+        pcl::PointNormal point = pcl::PointNormal(viewpoints.at(i).first[0], viewpoints.at(i).first[1], viewpoints.at(i).first[2], viewpoints.at(i).second[0], viewpoints.at(i).second[1], viewpoints.at(i).second[2]);
+        viewpoints_cloud->push_back(point);
+    }
+    
+
+    //Step 5: downsample viewepoints    
+    float ViewpointvoxelRes = 32.f;
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> downsampled_viewpoints_grid;
+    //allow for normal downsampling with position
+    downsampled_viewpoints_grid.setDownsampleAllData(true);
+    downsampled_viewpoints_grid.setInputCloud(viewpoints_cloud);
+    downsampled_viewpoints_grid.setLeafSize(ViewpointvoxelRes, ViewpointvoxelRes, ViewpointvoxelRes);
+    downsampled_viewpoints_grid.initializeVoxelGrid();
+    pcl::PointCloud<pcl::PointNormal>::Ptr downsampled_viewpoints = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(downsampled_viewpoints_grid.getFilteredPointCloud()));
+
+    //calculate BBox of cloud
+    std::pair<pcl::PointXYZ, pcl::PointXYZ>  min_max = MyMesh::get_cloud_BBOX(downsampled_viewpoints);
+
+    //Step 5: split the  viewpoints into layers
+    //vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(viewpoints_cloud, nb_layers, min_max);
+    vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(downsampled_viewpoints, nb_layers, min_max);
+
+    ////Step 6: downsample everylayer 
+    //vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 30.f); //*1
+
+    //make list of viewpoints per layer
+    //vector<pcl::PointCloud<pcl::PointNormal>::Ptr> downsampled_viewpoints;
+
+    vector<Viewpoints> viewpoints_list; //*2
+    //for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
+    //    pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
+    //    downsampled_viewpoints.push_back(filtered_layer_cloud);
+        //pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> voxel_layer = viewpoints_voxel_layers[i];
+    for (int i = 0; i < layer_viewpoints.size(); i++) {
+        pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = layer_viewpoints[i];
+        Viewpoints layer;
+        for (size_t j = 0; j < filtered_layer_cloud->points.size(); j++)
+        {
+            pcl::PointNormal point = filtered_layer_cloud->at(j);
+            //std::pair<Eigen::Vector3f, Eigen::Vector3f> tmp = std::pair< Eigen::Vector3f, Eigen::Vector3f>(Eigen::Vector3f(point.x, point.y, point.z), Eigen::Vector3f(point.normal_x, point.normal_y, point.normal_z));
+            layer.push_back(std::pair< Eigen::Vector3f, Eigen::Vector3f>(Eigen::Vector3f(point.x, point.y, point.z), Eigen::Vector3f(point.normal_x, point.normal_y, point.normal_z)));
+        }
+        //layer_viewpoints.push_back(layer);
+        viewpoints_list.push_back(layer);
+    }
+
+
+
+    //sort viewpoints by height for first layer
+    std::sort(layer_viewpoints[0]->points.begin(), layer_viewpoints[0]->points.end(), Viewpoint_Comparator()); //1
+    std::sort(viewpoints_list[0].begin(), viewpoints_list[0].end(), Viewpoint_Comparator());//2\
+    
+    Tree tree(faces(surface).first, faces(surface).second, surface);
+    Viewpoints final_viewpoints;
+
+    vector< Viewpoints> all_final_viewpoints;
+    vector<Eigen::Vector3f > final_path;
+    ExploratoryPlanner::generate_path_layer(layer_viewpoints[0], viewpoints_list[0], surface,  final_viewpoints, tree, final_path);
+    all_final_viewpoints.push_back(final_viewpoints);
+
+
+
+    //get path for every layer
+
+    Eigen::Vector3f* last_point = &final_path[final_path.size() - 1];
+    for (size_t i = 1; i < layer_viewpoints.size(); i++)
+    {
+        Viewpoints viewpoints;
+        ExploratoryPlanner::generate_path_layer(layer_viewpoints[i], viewpoints_list[i], surface, viewpoints, tree,  final_path, last_point );
+        last_point = &final_path[final_path.size() - 1];
+        all_final_viewpoints.push_back(viewpoints);
+    }
+
+
+
+
+    IO::write_PLY(argv[3], final_path);
+    cout << "path done" << endl;
+
+    //calculate path distance
+    cout << "TOTAL DISTANCE: " << calculate_distance(final_path) << endl;
+
+    pcl::PointCloud<pcl::PointNormal>::Ptr validation_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+    // retrieve the viewpoint and the direction
+    for (size_t i = 0; i < all_final_viewpoints.size(); i++)
+    {
+        Viewpoints final_viewpoints = all_final_viewpoints[i];
+        for (size_t j = 0; j < final_viewpoints.size(); j++)
+        {
+
+            std::pair<Eigen::Vector3f, Eigen::Vector3f> viewpoint = final_viewpoints[j];
+            Eigen::Vector3f position = viewpoint.first;
+            Eigen::Vector3f dir = viewpoint.second;
+            dir.normalize();
+            pcl::FrustumCulling<pcl::PointNormal> fc;
+            //set either the input cloud or voxelized cloud
+            fc.setInputCloud(cloud);
+            //fc.setInputCloud(voxel_cloud);
+            fc.setVerticalFOV(75);
+            fc.setHorizontalFOV(90);
+            fc.setNearPlaneDistance(lpp.get_near_plane_d());
+            fc.setFarPlaneDistance(lpp.get_far_plane_d());
+
+            Eigen::Matrix4f pose;
+            // /* Find cospi and sinpi */
+            float c1 = sqrt(dir[0] * dir[0] + dir[1] * dir[1]);
+            float s1 = dir[2];
+            ///* Find cosO and sinO; if gimbal lock, choose (1,0) arbitrarily */
+            float c2 = c1 ? dir[0] / c1 : 1.0;
+            float s2 = c1 ? dir[1] / c1 : 0.0;
+            //
+            //return mat3(v.x, -s2, -s1 * c2,
+            //    v.y, c2, -s1 * s2,
+            //    v.z, 0, c1);
+            pose << dir[0], -s2, -s1 * c2, position[0],
+                dir[1], c2, -s1 * s2, position[1],
+                dir[2], 0, c1, position[2],
+                0.f, 0.f, 0.f, 1.f;
+
+
+
+            fc.setCameraPose(pose);
+
+            pcl::PointCloud<pcl::PointNormal>::Ptr output(new pcl::PointCloud<pcl::PointNormal>);
+            fc.filter(*output);
+
+            //go through the points and verify angle threshhold before adding
+            for (size_t k = 0; k < output->points.size(); k++)
+            {
+                pcl::PointNormal p = output->points[k];
+                Eigen::Vector3f n(p.normal_x, p.normal_y, p.normal_z);
+                n.normalize();
+                float dot = dir.dot(n);
+                float angle = std::acos(dot / (dir.norm() * n.norm()));
+                if (angle < 70.f) {
+                    validation_cloud->points.push_back(p);
+                }
+            }
+
+            //*validation_cloud += *output;
+        }
+    }
+    
+
 
     //io observed vertices
     std::vector< Kernel::Point_3> points_test;
@@ -518,6 +690,7 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     }
     IO::write_PLY("out/validation.ply", points_test);
 }
+
 
 
 
@@ -559,6 +732,16 @@ int main(int argc, char* argv[])
     if (method._Equal("2")) {
         auto start = std::chrono::high_resolution_clock::now();
         method3(poly, surface, argv);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+        std::cout << "DURATION: " << duration.count() << endl;
+
+    }
+
+
+    if (method._Equal("3")) {
+        auto start = std::chrono::high_resolution_clock::now();
+        method4(poly, surface, argv);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
         std::cout << "DURATION: " << duration.count() << endl;

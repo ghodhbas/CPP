@@ -124,17 +124,17 @@ vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> LayeredPP::voxelize_
 		voxelGrid.setLeafSize(voxelRes, voxelRes, voxelRes);
 		voxelGrid.initializeVoxelGrid();
 
-		Eigen::Vector3i min_b_idx = voxelGrid.getMinBoxCoordinates();
-		Eigen::Vector3i max_b_idx = voxelGrid.getMaxBoxCoordinates();
-		Eigen::Vector3f leaf_size = voxelGrid.getLeafSize();
+		//Eigen::Vector3i min_b_idx = voxelGrid.getMinBoxCoordinates();
+		//Eigen::Vector3i max_b_idx = voxelGrid.getMaxBoxCoordinates();
+		//Eigen::Vector3f leaf_size = voxelGrid.getLeafSize();
 		
 
-		min_b[0] = (static_cast<float> (min_b_idx[0]) * leaf_size[0]);
-		min_b[1] = (static_cast<float> (min_b_idx[1]) * leaf_size[1]);
-		min_b[2] = (static_cast<float> (min_b_idx[2]) * leaf_size[2]);
-		max_b[0] = (static_cast<float> ((max_b_idx[0]) + 1) * leaf_size[0]);
-		max_b[1] = (static_cast<float> ((max_b_idx[1]) + 1) * leaf_size[1]);
-		max_b[2] = (static_cast<float> ((max_b_idx[2]) + 1) * leaf_size[2]);
+		//min_b[0] = (static_cast<float> (min_b_idx[0]) * leaf_size[0]);
+		//min_b[1] = (static_cast<float> (min_b_idx[1]) * leaf_size[1]);
+		//min_b[2] = (static_cast<float> (min_b_idx[2]) * leaf_size[2]);
+		//max_b[0] = (static_cast<float> ((max_b_idx[0]) + 1) * leaf_size[0]);
+		//max_b[1] = (static_cast<float> ((max_b_idx[1]) + 1) * leaf_size[1]);
+		//max_b[2] = (static_cast<float> ((max_b_idx[2]) + 1) * leaf_size[2]);
 
 		voxel_layers.push_back(voxelGrid);
 		

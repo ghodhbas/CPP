@@ -32,6 +32,7 @@ namespace ExploratoryPlanner
 {	
 	float calculate_huristic(pcl::PointNormal currentPoint, pcl::PointNormal point, Eigen::Vector3f view_dir, pcl::PointNormal prevPoint);
 
+	void  generate_path_layer(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, SurfaceMesh& surface, Viewpoints& final_viewpoints, Tree& tree , vector<Eigen::Vector3f >& final_path,  Eigen::Vector3f* last_point = nullptr );
 	vector<Eigen::Vector3f > generate_path(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, SurfaceMesh& surface, Viewpoints& final_viewpoints);
 }
 
