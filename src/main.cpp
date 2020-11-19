@@ -106,7 +106,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     fc.setInputCloud(cloud_with_n);
     //fc.setInputCloud(voxel_cloud);
     fc.setVerticalFOV(90);
-    fc.setHorizontalFOV(90);
+    fc.setHorizontalFOV(100);
     fc.setNearPlaneDistance(0.5f);
     fc.setFarPlaneDistance(3.f);
     for (size_t i = 0; i < Solution.size(); i++)
@@ -125,7 +125,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
             Eigen::Vector3f dir = pose.block(0, 0, 3, 1);
             float dot = dir.dot(n);
             float angle = std::acos(dot / (dir.norm() * n.norm()));
-            if (angle < 75.f) {
+            if (angle < 70.f) {
                 validation_cloud->points.push_back(p);
             }
         }
@@ -148,7 +148,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 5.5f);
+    LayeredPP lpp(0.5f, 5.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -161,7 +161,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data.
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 1.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 3.f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
 
 
@@ -181,12 +181,12 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 5: split the  viewpoints into layers
-    int nb_layers = 10;
+    int nb_layers = 5;
     vector< pcl::PointCloud<pcl::PointNormal>::Ptr> layer_viewpoints = lpp.construct_layers(viewpoints_cloud, nb_layers, min_max);
 
 
     //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 5.5f);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 7.f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
         pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
@@ -298,7 +298,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                 fc.setInputCloud(cloud);
                 //fc.setInputCloud(voxel_cloud);
                 fc.setVerticalFOV(90);
-                fc.setHorizontalFOV(90);
+                fc.setHorizontalFOV(110);
                 fc.setNearPlaneDistance(lpp.get_near_plane_d());
                 fc.setFarPlaneDistance(lpp.get_far_plane_d());
     
@@ -370,7 +370,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 5.2f);
+    LayeredPP lpp(0.5f, 4.5f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -383,7 +383,7 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 2.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 3.f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
 
 
@@ -403,7 +403,7 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 5: downsample viewepoints    
-    float ViewpointvoxelRes =4.8f;
+    float ViewpointvoxelRes = 5.f;
     pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> downsampled_viewpoints_grid;
     //allow for normal downsampling with position
     downsampled_viewpoints_grid.setDownsampleAllData(true);
@@ -453,8 +453,8 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
         //set either the input cloud or voxelized cloud
         fc.setInputCloud(cloud);
         //fc.setInputCloud(voxel_cloud);
-        fc.setVerticalFOV(75);
-        fc.setHorizontalFOV(90);
+        fc.setVerticalFOV(90);
+        fc.setHorizontalFOV(110);
         fc.setNearPlaneDistance(lpp.get_near_plane_d());
         fc.setFarPlaneDistance(lpp.get_far_plane_d());
 
@@ -511,8 +511,8 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 45.f);
-    int nb_layers = 14;
+    LayeredPP lpp(0.5f, 4.f);
+    int nb_layers = 6;
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -525,7 +525,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 2.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 3.f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
 
 
@@ -543,7 +543,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     
 
     //Step 5: downsample viewepoints    
-    float ViewpointvoxelRes = 32.f;
+    float ViewpointvoxelRes = 4.5f;
     pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> downsampled_viewpoints_grid;
     //allow for normal downsampling with position
     downsampled_viewpoints_grid.setDownsampleAllData(true);
@@ -635,8 +635,8 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
             //set either the input cloud or voxelized cloud
             fc.setInputCloud(cloud);
             //fc.setInputCloud(voxel_cloud);
-            fc.setVerticalFOV(75);
-            fc.setHorizontalFOV(90);
+            fc.setVerticalFOV(90);
+            fc.setHorizontalFOV(110);
             fc.setNearPlaneDistance(lpp.get_near_plane_d());
             fc.setFarPlaneDistance(lpp.get_far_plane_d());
 
@@ -707,23 +707,25 @@ int main(int argc, char* argv[])
     //MyMesh::print_mesh_info(m);
     
     //MyMesh::segment_mesh(surface);
-
-    /*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    //auto start = high_resolution_clock::now();
-    //method_1(poly, surface, argv);
-    //auto stop = high_resolution_clock::now();
-    //auto duration = duration_cast<seconds>(stop - start);
-    //cout << "DURATION: " << duration.count() << endl;
-
-    /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    cout <<" argv[2]: "<< argv[2] << endl;
+    cout << " argv[2]: " << argv[2] << endl;
     string method = argv[2];
+    /*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
+    if (method._Equal("0")) {
+
+        auto start = std::chrono::high_resolution_clock::now();
+        method_1(poly, surface, argv);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        cout << "DURATION: " << duration.count() << endl;
+    }
+    /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
+  
     if (method._Equal("1")){
 
         auto start = std::chrono::high_resolution_clock::now();
         method2(poly, surface, argv);
         auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "DURATION: " << duration.count() << endl;
 
     }
@@ -733,7 +735,7 @@ int main(int argc, char* argv[])
         auto start = std::chrono::high_resolution_clock::now();
         method3(poly, surface, argv);
         auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "DURATION: " << duration.count() << endl;
 
     }
@@ -743,7 +745,7 @@ int main(int argc, char* argv[])
         auto start = std::chrono::high_resolution_clock::now();
         method4(poly, surface, argv);
         auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "DURATION: " << duration.count() << endl;
 
     }

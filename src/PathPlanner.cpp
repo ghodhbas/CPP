@@ -666,7 +666,9 @@ void PathPlanner::DFS(vector<Eigen::Vector3f>& path, Node* node) {
 	for (size_t i = 0; i < node->neighbours.size(); i++)
 	{
 		if (!node->neighbours[i]->visited) DFS(path, node->neighbours[i]);
+		path.push_back(position);
 	}
+
 
 }
 
