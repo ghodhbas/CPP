@@ -235,12 +235,15 @@ namespace MyMesh {
 
 
     void convert_to_pointcloud(Polyhedron& poly, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, std::map<poly_vertex_descriptor, Vector>& vnormals) {
+        //int k = 0;
         for (poly_vertex_iterator v = poly.vertices_begin(); v != poly.vertices_end(); ++v) {   
             
             pcl::PointNormal point = pcl::PointNormal(v->point().x(), v->point().y(), v->point().z(), vnormals[v].x(), vnormals[v].y(), vnormals[v].z());
-
+            //if (point.y < 0) k++;
             cloud->push_back(point);
         }
+
+        //std::cout << "Number of points below floor: " << k << std::endl;
     }
 
 

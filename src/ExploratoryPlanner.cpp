@@ -194,7 +194,7 @@ namespace ExploratoryPlanner {
         // Neighbors within radius search
         pcl::KdTreeFLANN<pcl::PointNormal> kdtree;
         kdtree.setInputCloud(downsampled_viewpoints);
-        float radius = 25.f; //search radius
+        float radius = 1000.f; //search radius
 
 
         while (nb_visted < downsampled_viewpoints->points.size()) {

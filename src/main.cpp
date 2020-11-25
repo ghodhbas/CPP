@@ -511,7 +511,7 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 4.f);
+    LayeredPP lpp(1.f, 50.f);
     int nb_layers = 6;
 
     // Step 1 calculate per vertex normals
@@ -525,9 +525,8 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 3.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
-
 
 
     //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
@@ -543,7 +542,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     
 
     //Step 5: downsample viewepoints    
-    float ViewpointvoxelRes = 4.5f;
+    float ViewpointvoxelRes = 50.f;
     pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> downsampled_viewpoints_grid;
     //allow for normal downsampling with position
     downsampled_viewpoints_grid.setDownsampleAllData(true);
@@ -635,8 +634,8 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
             //set either the input cloud or voxelized cloud
             fc.setInputCloud(cloud);
             //fc.setInputCloud(voxel_cloud);
-            fc.setVerticalFOV(90);
-            fc.setHorizontalFOV(110);
+            fc.setVerticalFOV(120);
+            fc.setHorizontalFOV(120);
             fc.setNearPlaneDistance(lpp.get_near_plane_d());
             fc.setFarPlaneDistance(lpp.get_far_plane_d());
 
@@ -671,7 +670,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                 n.normalize();
                 float dot = dir.dot(n);
                 float angle = std::acos(dot / (dir.norm() * n.norm()));
-                if (angle < 70.f) {
+                if (angle < 60.f) {
                     validation_cloud->points.push_back(p);
                 }
             }

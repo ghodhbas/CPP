@@ -76,7 +76,7 @@ vector< pcl::PointCloud<pcl::PointNormal>::Ptr> LayeredPP::construct_layers(pcl:
 }
 
 pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> LayeredPP::voxelize(pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, float voxelRes) {
-	Eigen::Vector3f max_b, min_b;
+	
 
 	pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> voxelGrid;
 	//allow for normal downsampling with position
@@ -85,23 +85,30 @@ pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> LayeredPP::voxelize(pcl::Poi
 	voxelGrid.setLeafSize(voxelRes, voxelRes, voxelRes);
 	voxelGrid.initializeVoxelGrid();
 
-	Eigen::Vector3i min_b_idx = voxelGrid.getMinBoxCoordinates();
-	Eigen::Vector3i max_b_idx = voxelGrid.getMaxBoxCoordinates();
+	Eigen::Vector3i min_b1 = voxelGrid.getMinBoxCoordinates();
+	Eigen::Vector3i max_b1 = voxelGrid.getMaxBoxCoordinates();
 	Eigen::Vector3f leaf_size = voxelGrid.getLeafSize();
 
-
-	//min_b[0] = (static_cast<float> (min_b_idx[0]) * leaf_size[0]);
-	//min_b[1] = (static_cast<float> (min_b_idx[1]) * leaf_size[1]);
-	//min_b[2] = (static_cast<float> (min_b_idx[2]) * leaf_size[2]);
-	//max_b[0] = (static_cast<float> ((max_b_idx[0]) + 1) * leaf_size[0]);
-	//max_b[1] = (static_cast<float> ((max_b_idx[1]) + 1) * leaf_size[1]);
-	//max_b[2] = (static_cast<float> ((max_b_idx[2]) + 1) * leaf_size[2]);
+	//int OriginalVoxelsSize = 0;
+	////calculate voxel size
+	//for (int kk = min_b1.z(); kk <= max_b1.z(); ++kk)
+	//{
+	//	for (int jj = min_b1.y(); jj <= max_b1.y(); ++jj)
+	//	{
+	//		for (int ii = min_b1.x(); ii <= max_b1.x(); ++ii)
+	//		{
+	//			Eigen::Vector3i ijk1(ii, jj, kk);
+	//			int index1 = voxelGrid.getCentroidIndexAt(ijk1);
+	//			if (index1 != -1)
+	//			{
+	//				OriginalVoxelsSize++;
+	//			}
 	//
-	//std::cout << "In Layered Planner -  Voxel grid Min indicies : " << min_b_idx.x() << ", " << min_b_idx.y() << ", " << min_b_idx.z() << std::endl;
-	//std::cout << "In Layered Planner -  Voxel grid Max indicies : " << max_b_idx.x() << ", " << max_b_idx.y() << ", " << max_b_idx.z() << std::endl;
-	//std::cout << "In Layer Planner -  Voxel grid Min: " << min_b.x() << ", " << min_b.y() << ", " << min_b.z() << std::endl;
-	//std::cout << "In Layer Planner -  Voxel grid Max: " << max_b.x() << ", " << max_b.y() << ", " << max_b.z() << std::endl << endl;
-
+	//		}
+	//	}
+	//}
+	//
+	//cout << "OCCUPIED VOXEL COUNT: " << OriginalVoxelsSize << endl;
 	return voxelGrid;
 
 }
