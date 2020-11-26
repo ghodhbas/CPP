@@ -335,7 +335,15 @@ namespace MyMesh {
         Ray ray(p, d * v);
         Ray_intersection intersection = tree.first_intersection(ray);
         if (intersection) {
+            //if (boost::get<Point>(&(intersection->first))) {
+            //    const Point* int_point = boost::get<Point>(&(intersection->first));
+            //    if (std::abs(CGAL::squared_distance(p, Point(p2[0], p2[1], p2[2])) - CGAL::squared_distance(p, *int_point)) < 0.01f) {
+            //        return false;
+            //    }
+            //    else true;
+            //}
             return true;
+
         }
         return false;
 

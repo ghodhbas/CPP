@@ -27,7 +27,7 @@ namespace ExploratoryPlanner {
         angle = angle * (180.f / M_PI);
 
         //angle threshhold
-        if(angle> 70.f) angle = angle *100;
+        if(angle> 130.f) angle = angle *100;
 
         //coverage? -- instead of coverage in huristic we will cover all viewpoints that have been downsampeled
 
@@ -194,7 +194,7 @@ namespace ExploratoryPlanner {
         // Neighbors within radius search
         pcl::KdTreeFLANN<pcl::PointNormal> kdtree;
         kdtree.setInputCloud(downsampled_viewpoints);
-        float radius = 1000.f; //search radius
+        float radius = 20.f; //search radius
 
 
         while (nb_visted < downsampled_viewpoints->points.size()) {

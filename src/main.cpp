@@ -41,9 +41,6 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_n = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
     MyMesh::convert_to_pointcloud(poly, cloud_with_n, vnormals);
 
-
-
-
     cout << "Path Planning Intialization..." << endl;
     PathPlanner pp(cloud);
     cout << "Path Planning Intialization Complete" <<endl<< endl;
@@ -58,16 +55,25 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     cout << "Removing invalid viewpoints..." << endl;
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> final_viewpoints;
     std::vector< Kernel::Point_3> viewpoints_cloud;
-    MyMesh::remove_points_inside_mesh(poly, viewpoints, final_viewpoints, viewpoints_cloud);
+    //MyMesh::remove_points_inside_mesh(poly, viewpoints, final_viewpoints, viewpoints_cloud);
     cout << "Removing invalid viewpoints complete" << endl;
     cout << "NB viewpoints after cleaning: " << final_viewpoints.size() << endl<<endl;
+
+
+    //std::vector< Kernel::Point_3> points_test2;
+    //for (size_t i = 0; i < viewpoints.size(); i++)
+    //{   
+    //    Eigen::Vector3f point = viewpoints[i].first.block(0, 3, 3, 1);
+    //
+    //    points_test2.push_back(Kernel::Point_3(point[0], point[1], point[2]));
+    //}
+    //IO::write_PLY("out/viewpoints.ply", points_test2);
 
 
     //Solve the set cover problem to get the lowest number of viewpoints that cover the surface  ---   Maximaze viewpoint-mesh intersection, remove intersectiona nd viewpoint, repeat
     cout << "Applying Set Cover: Generating Solution Viewpoints" << endl;
     std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>> Solution = pp.greedy_set_cover(cloud, final_viewpoints);
     cout << "Number of viewpoints to cover the paths " << Solution.size() <<endl<< endl;
-
 
 
     //saves the indices withion the graph where the viewpoints are located
@@ -148,7 +154,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 5.f);
+    LayeredPP lpp(0.5f, 4.5f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -161,8 +167,18 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data.
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 3.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
+
+    //output voxel grid
+    pcl::PointCloud<pcl::PointNormal> grid = mesh_voxelgrid.getFilteredPointCloud();
+    std::vector< Kernel::Point_3> v_grid_io;
+    for (size_t i = 0; i < grid.points.size(); i++)
+    {
+        v_grid_io.push_back(Kernel::Point_3(grid.points[i].x, grid.points[i].y, grid.points[i].z));
+    }
+    IO::write_PLY("out/VoxelGrid.ply", v_grid_io);
+
 
 
     //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
@@ -186,7 +202,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 7.f);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 6.5f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
         pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
@@ -295,10 +311,10 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                 dir.normalize();
                 pcl::FrustumCulling<pcl::PointNormal> fc;
                 //set either the input cloud or voxelized cloud
-                fc.setInputCloud(cloud);
-                //fc.setInputCloud(voxel_cloud);
-                fc.setVerticalFOV(90);
-                fc.setHorizontalFOV(110);
+                //fc.setInputCloud(cloud);
+                fc.setInputCloud(grid.makeShared());
+                fc.setVerticalFOV(120);
+                fc.setHorizontalFOV(120);
                 fc.setNearPlaneDistance(lpp.get_near_plane_d());
                 fc.setFarPlaneDistance(lpp.get_far_plane_d());
     
@@ -332,9 +348,13 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                     Eigen::Vector3f n(p.normal_x, p.normal_y, p.normal_z);
                     n.normalize();
                     float dot = dir.dot(n);
-                    float angle = std::acos(dot / (dir.norm() * n.norm()));
-                    if (angle < 70.f) {
+                    float angle = std::acos(dot / (dir.norm() * n.norm())) * 180.f / M_PI;
+                    //cout << angle << endl;
+                    if ((180 - angle) < 80.f) {
+                        //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                         validation_cloud->points.push_back(p);
+                        //}
+
                     }
                 }
     
@@ -383,8 +403,17 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 3.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
+
+    //output voxel grid
+    pcl::PointCloud<pcl::PointNormal> grid = mesh_voxelgrid.getFilteredPointCloud();
+    std::vector< Kernel::Point_3> v_grid_io;
+    for (size_t i = 0; i < grid.points.size(); i++)
+    {
+        v_grid_io.push_back(Kernel::Point_3(grid.points[i].x, grid.points[i].y, grid.points[i].z));
+    }
+    IO::write_PLY("out/VoxelGrid.ply", v_grid_io);
 
 
     //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
@@ -432,8 +461,6 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     vector<Eigen::Vector3f > final_path = ExploratoryPlanner::generate_path(downsampled_viewpoints, viewpoints_list, surface , final_viewpoints);
 
 
-
-
     IO::write_PLY(argv[3], final_path);
     cout << "path done" << endl;
     
@@ -451,10 +478,10 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
         dir.normalize();
         pcl::FrustumCulling<pcl::PointNormal> fc;
         //set either the input cloud or voxelized cloud
-        fc.setInputCloud(cloud);
-        //fc.setInputCloud(voxel_cloud);
-        fc.setVerticalFOV(90);
-        fc.setHorizontalFOV(110);
+        //fc.setInputCloud(cloud);
+        fc.setInputCloud(grid.makeShared());
+        fc.setVerticalFOV(120);
+        fc.setHorizontalFOV(120);
         fc.setNearPlaneDistance(lpp.get_near_plane_d());
         fc.setFarPlaneDistance(lpp.get_far_plane_d());
 
@@ -488,9 +515,13 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
             Eigen::Vector3f n(p.normal_x, p.normal_y, p.normal_z);
             n.normalize();
             float dot = dir.dot(n);
-            float angle = std::acos(dot / (dir.norm() * n.norm()));
-            if (angle < 70.f) {
+            float angle = std::acos(dot / (dir.norm() * n.norm())) * 180.f / M_PI;
+            //cout << angle << endl;
+            if ((180 - angle) < 80.f) {
+                //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                 validation_cloud->points.push_back(p);
+                //}
+
             }
          }
 
@@ -511,8 +542,8 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(1.f, 50.f);
-    int nb_layers = 6;
+    LayeredPP lpp(0.5f, 4.5f);
+    int nb_layers = 8;
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -525,8 +556,18 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.4f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
+
+    //output voxel grid
+    pcl::PointCloud<pcl::PointNormal> grid = mesh_voxelgrid.getFilteredPointCloud();
+    std::vector< Kernel::Point_3> v_grid_io;
+    for (size_t i = 0; i < grid.points.size(); i++)
+    {
+        v_grid_io.push_back(Kernel::Point_3(grid.points[i].x, grid.points[i].y, grid.points[i].z));
+    }
+    IO::write_PLY("out/VoxelGrid.ply", v_grid_io);
+
 
 
     //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
@@ -542,7 +583,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     
 
     //Step 5: downsample viewepoints    
-    float ViewpointvoxelRes = 50.f;
+    float ViewpointvoxelRes = 5.f;
     pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> downsampled_viewpoints_grid;
     //allow for normal downsampling with position
     downsampled_viewpoints_grid.setDownsampleAllData(true);
@@ -632,8 +673,8 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
             dir.normalize();
             pcl::FrustumCulling<pcl::PointNormal> fc;
             //set either the input cloud or voxelized cloud
-            fc.setInputCloud(cloud);
-            //fc.setInputCloud(voxel_cloud);
+            //fc.setInputCloud(cloud);
+            fc.setInputCloud(grid.makeShared());
             fc.setVerticalFOV(120);
             fc.setHorizontalFOV(120);
             fc.setNearPlaneDistance(lpp.get_near_plane_d());
@@ -669,9 +710,13 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
                 Eigen::Vector3f n(p.normal_x, p.normal_y, p.normal_z);
                 n.normalize();
                 float dot = dir.dot(n);
-                float angle = std::acos(dot / (dir.norm() * n.norm()));
-                if (angle < 60.f) {
-                    validation_cloud->points.push_back(p);
+                float angle = std::acos(dot / (dir.norm() * n.norm())) * 180.f / M_PI;
+                //cout << angle << endl;
+                if ((180-angle) < 80.f) {
+                    //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
+                        validation_cloud->points.push_back(p);
+                    //}
+                       
                 }
             }
 

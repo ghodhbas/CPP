@@ -43,6 +43,6 @@ private:
 
 	float near_plane_d;
 	float far_plane_d;
-	float distance_epsilon = 0.3f;
+	float distance_epsilon = 0.1f;
 };
 
