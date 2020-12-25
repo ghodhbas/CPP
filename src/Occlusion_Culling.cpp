@@ -116,6 +116,7 @@ OcclusionCulling::OcclusionCulling( pcl::PointCloud<pcl::PointXYZ>::Ptr& cloudPt
 
 
 
+
 OcclusionCulling::OcclusionCulling() :
     model(NULL),
     fc(true)

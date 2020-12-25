@@ -9,6 +9,8 @@
 #include "MyMesh.h"
 #include "pcl/common/distances.h"
 #include "pcl/common/angles.h"
+#include <pcl/filters/frustum_culling.h>
+#include "VoxelGridOcclusionEstimationN.h"
 
 typedef std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>  Viewpoints;
 typedef std::pair<Eigen::Vector3f, Eigen::Vector3f>  Viewpoint;
@@ -30,9 +32,11 @@ public:
 
 namespace ExploratoryPlanner
 {	
-	float calculate_huristic(pcl::PointNormal currentPoint, pcl::PointNormal point, Eigen::Vector3f view_dir, pcl::PointNormal prevPoint);
+	float calculate_huristic(pcl::PointNormal currentPoint, pcl::PointNormal point, float cov, Eigen::Vector3f view_dir, pcl::PointNormal prevPoint);
 
-	void  generate_path_layer(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, SurfaceMesh& surface, Viewpoints& final_viewpoints, Tree& tree , vector<Eigen::Vector3f >& final_path,  Eigen::Vector3f* last_point = nullptr );
+	void  generate_path_layer(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes, float curr_radius, SurfaceMesh& surface, Viewpoints& final_viewpoints, Tree& tree , vector<Eigen::Vector3f >& final_path,  Eigen::Vector3f* last_point = nullptr  );
 	vector<Eigen::Vector3f > generate_path(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, SurfaceMesh& surface, Viewpoints& final_viewpoints);
+
+	vector<int> calculate_coverage(pcl::PointCloud<pcl::PointNormal>::Ptr downsampled_viewpoints, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes);
 }
 

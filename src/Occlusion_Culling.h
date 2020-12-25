@@ -66,6 +66,10 @@ public:
     bool contains(pcl::PointCloud<pcl::PointXYZ> c, pcl::PointXYZ p);
     pcl::PointCloud<pcl::PointXYZ> pointsDifference(pcl::PointCloud<pcl::PointXYZ> c2);
 
+
+
+    
+
 };
 
 #endif

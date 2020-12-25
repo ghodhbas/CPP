@@ -154,7 +154,7 @@ void method_1(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 4.5f);
+    LayeredPP lpp(0.5f, 7.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -202,7 +202,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 6: Voxelize every layer of viewpoints and make input for TSP (reduce number of viewpoints)
-    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 6.5f);
+    vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> viewpoints_voxel_layers = lpp.voxelize_layers(layer_viewpoints, 6.6f);
     vector<Viewpoints> downsampled_viewpoints_perlayer;
     for (int i = 0; i < viewpoints_voxel_layers.size(); i++) {
         pcl::PointCloud<pcl::PointNormal>::Ptr filtered_layer_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(viewpoints_voxel_layers[i].getFilteredPointCloud()));
@@ -390,7 +390,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 4.5f);
+    LayeredPP lpp(0.5f, 7.f);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -432,7 +432,7 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 5: downsample viewepoints    
-    float ViewpointvoxelRes = 5.f;
+    float ViewpointvoxelRes = 5.5f;
     pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> downsampled_viewpoints_grid;
     //allow for normal downsampling with position
     downsampled_viewpoints_grid.setDownsampleAllData(true);
@@ -541,9 +541,12 @@ void method3(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
 
-void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
-    LayeredPP lpp(0.5f, 4.5f);
-    int nb_layers = 8;
+void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius) {
+    float near = 0.5f ;
+    float far = 4.f;
+    float Hfov = 120.f;
+    float Vfov = 120.f;
+    LayeredPP lpp(near, far);
 
     // Step 1 calculate per vertex normals
     std::map<poly_vertex_descriptor, Vector> vnormals;
@@ -556,7 +559,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.4f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
 
     //output voxel grid
@@ -582,8 +585,11 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     }
     
 
+    cout << "Total Number of Viewpoints before filter : " << viewpoints_cloud->points.size() << endl;
+
+
     //Step 5: downsample viewepoints    
-    float ViewpointvoxelRes = 5.f;
+    float ViewpointvoxelRes = curr_res;
     pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> downsampled_viewpoints_grid;
     //allow for normal downsampling with position
     downsampled_viewpoints_grid.setDownsampleAllData(true);
@@ -591,6 +597,9 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     downsampled_viewpoints_grid.setLeafSize(ViewpointvoxelRes, ViewpointvoxelRes, ViewpointvoxelRes);
     downsampled_viewpoints_grid.initializeVoxelGrid();
     pcl::PointCloud<pcl::PointNormal>::Ptr downsampled_viewpoints = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(downsampled_viewpoints_grid.getFilteredPointCloud()));
+
+    cout << "Total Number of Viewpoints afterfilter : " << downsampled_viewpoints->points.size() << endl;
+
 
     //calculate BBox of cloud
     std::pair<pcl::PointXYZ, pcl::PointXYZ>  min_max = MyMesh::get_cloud_BBOX(downsampled_viewpoints);
@@ -634,10 +643,9 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
 
     vector< Viewpoints> all_final_viewpoints;
     vector<Eigen::Vector3f > final_path;
-    ExploratoryPlanner::generate_path_layer(layer_viewpoints[0], viewpoints_list[0], surface,  final_viewpoints, tree, final_path);
+
+    ExploratoryPlanner::generate_path_layer(layer_viewpoints[0], viewpoints_list[0], grid.makeShared(), near, far, Hfov, Vfov, ViewpointvoxelRes, curr_radius, surface, viewpoints, tree, final_path, nullptr);
     all_final_viewpoints.push_back(final_viewpoints);
-
-
 
     //get path for every layer
 
@@ -645,20 +653,13 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     for (size_t i = 1; i < layer_viewpoints.size(); i++)
     {
         Viewpoints viewpoints;
-        ExploratoryPlanner::generate_path_layer(layer_viewpoints[i], viewpoints_list[i], surface, viewpoints, tree,  final_path, last_point );
+        ExploratoryPlanner::generate_path_layer(layer_viewpoints[i], viewpoints_list[i], grid.makeShared(), near, far, Hfov, Vfov, ViewpointvoxelRes, curr_radius, surface, viewpoints, tree, final_path, last_point);
         last_point = &final_path[final_path.size() - 1];
         all_final_viewpoints.push_back(viewpoints);
     }
 
 
-
-
-    IO::write_PLY(argv[3], final_path);
-    cout << "path done" << endl;
-
-    //calculate path distance
-    cout << "TOTAL DISTANCE: " << calculate_distance(final_path) << endl;
-
+   
     pcl::PointCloud<pcl::PointNormal>::Ptr validation_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
     // retrieve the viewpoint and the direction
     for (size_t i = 0; i < all_final_viewpoints.size(); i++)
@@ -675,8 +676,8 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
             //set either the input cloud or voxelized cloud
             //fc.setInputCloud(cloud);
             fc.setInputCloud(grid.makeShared());
-            fc.setVerticalFOV(120);
-            fc.setHorizontalFOV(120);
+            fc.setVerticalFOV(Vfov);
+            fc.setHorizontalFOV(Hfov);
             fc.setNearPlaneDistance(lpp.get_near_plane_d());
             fc.setFarPlaneDistance(lpp.get_far_plane_d());
 
@@ -725,6 +726,27 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     }
     
 
+    cout << "nb point viewed: " << validation_cloud->points.size() << endl;
+    pcl::VoxelGrid<pcl::PointNormal> clean;
+    pcl::PointCloud<pcl::PointNormal>::Ptr o(new pcl::PointCloud<pcl::PointNormal>);
+    clean.setDownsampleAllData(true);
+    clean.setInputCloud(validation_cloud);
+    clean.setLeafSize(0.2f, 0.2f, 0.2f);
+    clean.filter(*o);
+    float coverage = ((float)o->points.size() / grid.points.size()) * 100;
+    cout << "Coverage: " << coverage << endl;
+    if (coverage < min_cov) return;
+
+
+    //output path
+    path_file += std::string("_").append(std::to_string(curr_res));
+    path_file += std::string("_").append(std::to_string(curr_radius));
+    IO::write_PLY(std::string(path_file).append(".ply"), final_path);
+    cout << "path done" << endl;
+
+    //calculate path distance
+    cout << "TOTAL DISTANCE: " << calculate_distance(final_path) << endl;
+
 
     //io observed vertices
     std::vector< Kernel::Point_3> points_test;
@@ -732,7 +754,10 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, char* argv[]) {
     {
         points_test.push_back(Kernel::Point_3(validation_cloud->points[i].x, validation_cloud->points[i].y, validation_cloud->points[i].z));
     }
-    IO::write_PLY("out/validation.ply", points_test);
+    string out = "out/validation";
+    out += std::string("_").append(std::to_string(curr_res));
+    out += std::string("_").append(std::to_string(curr_radius));
+    IO::write_PLY(std::string(out).append(".ply"), points_test);
 }
 
 
@@ -753,44 +778,70 @@ int main(int argc, char* argv[])
     //MyMesh::segment_mesh(surface);
     cout << " argv[2]: " << argv[2] << endl;
     string method = argv[2];
-    /*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    if (method._Equal("0")) {
 
-        auto start = std::chrono::high_resolution_clock::now();
-        method_1(poly, surface, argv);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        cout << "DURATION: " << duration.count() << endl;
-    }
-    /*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-  
-    if (method._Equal("1")){
 
-        auto start = std::chrono::high_resolution_clock::now();
-        method2(poly, surface, argv);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        std::cout << "DURATION: " << duration.count() << endl;
+    string path_file = argv[3];
+    float min_res = strtof(argv[4], NULL);
+    float max_res = strtof(argv[5], NULL);
+    float incr_res = strtof(argv[6], NULL);
+    int nb_layers = strtof(argv[7], NULL);
+    float min_radius = strtof(argv[8], NULL);
+    float max_radius = strtof(argv[9], NULL);
+    float incr_radius = strtof(argv[10], NULL);
+    float min_cov = 90.0f;
+    
 
-    }
-
-    /*--------------------------------  METHOD 3: Exploratory with huristic--------           START FINDING PATH ALGORITHM    ---------------------          */
-    if (method._Equal("2")) {
-        auto start = std::chrono::high_resolution_clock::now();
-        method3(poly, surface, argv);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        std::cout << "DURATION: " << duration.count() << endl;
-
-    }
+    ///*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
+    //if (method._Equal("0")) {
+    //
+    //    auto start = std::chrono::high_resolution_clock::now();
+    //    method_1(poly, surface, argv);
+    //    auto stop = std::chrono::high_resolution_clock::now();
+    //    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    //    cout << "DURATION: " << duration.count() << endl;
+    //}
+    ///*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
+    //
+    //if (method._Equal("1")){
+    //
+    //    auto start = std::chrono::high_resolution_clock::now();
+    //    method2(poly, surface, argv);
+    //    auto stop = std::chrono::high_resolution_clock::now();
+    //    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    //    std::cout << "DURATION: " << duration.count() << endl;
+    //
+    //}
+    //
+    ///*--------------------------------  METHOD 3: Exploratory with huristic--------           START FINDING PATH ALGORITHM    ---------------------          */
+    //if (method._Equal("2")) {
+    //    auto start = std::chrono::high_resolution_clock::now();
+    //    method3(poly, surface, argv);
+    //    auto stop = std::chrono::high_resolution_clock::now();
+    //    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    //    std::cout << "DURATION: " << duration.count() << endl;
+    //
+    //}
 
 
     if (method._Equal("3")) {
-        auto start = std::chrono::high_resolution_clock::now();
-        method4(poly, surface, argv);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        std::cout << "DURATION: " << duration.count() << endl;
+        float curr_res = min_res; 
+        float curr_radius = min_radius;
+        while(curr_res<=max_res){
+
+            std::cout << "-------------------------- ResolLution: " << curr_res << " -----------------------" << std::endl;
+            while (curr_radius <= max_radius) {
+                auto start = std::chrono::high_resolution_clock::now();
+                std::cout << "             ----------------- Radius:  " << curr_radius << " ---------            " << std::endl;
+                method4(poly, surface, path_file, curr_res, nb_layers, min_cov, curr_radius);
+                auto stop = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                std::cout << "DURATION: " << duration.count() << endl;
+                curr_radius += incr_radius;
+            }
+            
+            curr_res += incr_res;
+            curr_radius = min_radius;
+        }
 
     }
    

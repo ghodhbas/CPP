@@ -188,6 +188,7 @@
     <ClCompile Include="src\Occlusion_Culling.cpp" />
     <ClCompile Include="src\Frustum.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\VoxelGridOcclusionEstimationN.cpp" />
     <ClCompile Include="src\VoxelGridOcclusionEstimationT.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -203,6 +204,7 @@
     <ClInclude Include="src\MyMesh.h" />
     <ClInclude Include="src\IO.h" />
     <ClInclude Include="src\UAV.h" />
+    <ClInclude Include="src\VoxelGridOcclusionEstimationN.h" />
     <ClInclude Include="src\VoxelGridOcclusionEstimationT.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
