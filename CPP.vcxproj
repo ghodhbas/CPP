@@ -195,6 +195,7 @@
     <ClInclude Include="src\ExploratoryPlanner.h" />
     <ClInclude Include="src\LayeredPP.h" />
     <ClInclude Include="src\graph.h" />
+    <ClInclude Include="src\othermethods.h" />
     <ClInclude Include="src\PathPlanner.h" />
     <ClInclude Include="src\Occlusion_Culling.h" />
     <ClInclude Include="src\Frustum.h" />

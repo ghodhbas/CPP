@@ -38,5 +38,7 @@ namespace ExploratoryPlanner
 	vector<Eigen::Vector3f > generate_path(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, SurfaceMesh& surface, Viewpoints& final_viewpoints);
 
 	vector<int> calculate_coverage(pcl::PointCloud<pcl::PointNormal>::Ptr downsampled_viewpoints, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes);
+	pcl::PointCloud<pcl::PointNormal> calculate_coverage(pcl::PointNormal point, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes);
+
 }
 

@@ -22,13 +22,13 @@ namespace ExploratoryPlanner {
             angle = asinf(next_dir.dot(Eigen::Vector3f(0.f, 1.f, 0.f)));
         }
         else {
-            //divide by norm if not normalized
-            angle = acosf(next_dir.dot(prev_dir));
+            
+            angle = acosf(next_dir.dot(prev_dir)/std::sqrtf(next_dir.squaredNorm() * prev_dir.squaredNorm()));
         }
         angle = angle * (180.f / M_PI);
         
         //angle threshhold
-        if(angle> 130.f) angle = angle *100;
+        if(angle> 130.f) angle = angle *100000;
 
 
 
@@ -36,8 +36,8 @@ namespace ExploratoryPlanner {
 
 
 
-        //return  10.f * d +  angle - cov;
-        return  10.f * d  - cov;
+        return  7.f * d +  2.f*angle - cov;
+       //return   cov;
     }
 
 
@@ -209,6 +209,18 @@ namespace ExploratoryPlanner {
         // calculate the coverage for viewpoints - to be used in huristic
         vector<int> coverage_per_viewpoint = calculate_coverage(downsampled_viewpoints, voxel_cloud, near, far, Hfov, Vfov, voxelRes);
 
+
+
+        //init voxel cloud after removing observed voxels
+        pcl::PointCloud<pcl::PointNormal>::Ptr tmp_voxel_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud<pcl::PointNormal>());
+        for (size_t i = 1; i < voxel_cloud->points.size(); i++)
+        {
+            tmp_voxel_cloud->push_back(voxel_cloud->points[i]);
+        }
+
+        vector< pcl::PointCloud<pcl::PointNormal>::Ptr> observed_voxels_per_viewpoint;
+
+
         while (nb_visted < downsampled_viewpoints->points.size()) {
             std::vector<int> pointIdxRadiusSearch;
             std::vector<float> pointRadiusSquaredDistance;
@@ -238,7 +250,14 @@ namespace ExploratoryPlanner {
                     //calculate hurestic for point
                     Eigen::Vector3f view_dir = viewpoints_list[pointIdxRadiusSearch[i]].second;
                     //caluculate coverage 
-                    float cov = coverage_per_viewpoint[pointIdxRadiusSearch[i]];
+                    pcl::PointCloud<pcl::PointNormal>::Ptr points_covered = calculate_coverage(point, tmp_voxel_cloud, near, far, Hfov, Vfov, voxelRes).makeShared();
+                    //float cov = coverage_per_viewpoint[pointIdxRadiusSearch[i]];
+                    float cov = points_covered->points.size();
+
+                    //save the covered surface
+                    observed_voxels_per_viewpoint.push_back(points_covered);
+
+
                     float cost = calculate_huristic(currentPoint, point, cov, view_dir, prevPoint);
                     if (cost < min_cost) {
                         min_cost = cost;
@@ -278,9 +297,16 @@ namespace ExploratoryPlanner {
                     << ")" << endl;
             }
 
-          
+            //update the voxel grid to delete observed surface -- use erase point for every point in the observed
+            pcl::PointCloud<pcl::PointNormal>::Ptr cloud = observed_voxels_per_viewpoint[min_cost_idx];
+            //loop through tmp cloud and delete corresponding voxels
+
+
+            ***********************************************
             
         }
+
+        
 
 	}
 
@@ -336,7 +362,7 @@ namespace ExploratoryPlanner {
             output->sensor_orientation_ = Eigen::Quaternionf( rot);
             pcl::VoxelGridOcclusionEstimationN voxelFilter;
             voxelFilter.setInputCloud(output);
-            voxelFilter.setLeafSize(voxelRes, voxelRes, voxelRes);
+            voxelFilter.setLeafSize(0.5f, 0.5f, 0.5f);
             voxelFilter.initializeVoxelGrid();
             
             int state, ret;
@@ -385,9 +411,79 @@ namespace ExploratoryPlanner {
             }
 
 
-            nb_coverage.push_back(count);
+            nb_coverage.push_back(voxelFilter.getFilteredPointCloud().points.size());
         }
         return  nb_coverage;
     }
    
+
+
+                     
+    /* retunr the number of voxels observed from a viewpoint*/
+    pcl::PointCloud<pcl::PointNormal> calculate_coverage(pcl::PointNormal point, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes) {
+
+        // for every viewpoint
+
+            pcl::FrustumCulling<pcl::PointNormal> fc;
+
+            fc.setInputCloud(voxel_cloud);
+            fc.setVerticalFOV(Vfov);
+            fc.setHorizontalFOV(Hfov);
+            fc.setNearPlaneDistance(near);
+            fc.setFarPlaneDistance(far);
+
+            /* #1: Get Points in frustum*/
+            pcl::PointCloud<pcl::PointNormal>::Ptr output(new pcl::PointCloud<pcl::PointNormal>);
+
+            pcl::PointNormal viewpoint = point;
+            Eigen::Vector3f position = Eigen::Vector3f(viewpoint.x, viewpoint.y, viewpoint.z);
+            Eigen::Vector3f dir = Eigen::Vector3f(viewpoint.normal_x, viewpoint.normal_y, viewpoint.normal_z);
+            Eigen::Matrix4f pose;
+            // /* Find cospi and sinpi */
+            float c1 = sqrt(dir[0] * dir[0] + dir[1] * dir[1]);
+            float s1 = dir[2];
+            ///* Find cosO and sinO; if gimbal lock, choose (1,0) arbitrarily */
+            float c2 = c1 ? dir[0] / c1 : 1.0;
+            float s2 = c1 ? dir[1] / c1 : 0.0;
+            //
+            //return mat3(v.x, -s2, -s1 * c2,
+            //    v.y, c2, -s1 * s2,
+            //    v.z, 0, c1);
+            pose << dir[0], -s2, -s1 * c2, position[0],
+                dir[1], c2, -s1 * s2, position[1],
+                dir[2], 0, c1, position[2],
+                0.f, 0.f, 0.f, 1.f;
+
+            //get frustum cull
+            fc.setCameraPose(pose);
+            fc.filter(*output);
+
+
+            /* #2: Get Non occluded points*/
+            output->sensor_origin_ = Eigen::Vector4f(position[0], position[1], position[2], 0);
+            Eigen::Matrix3f rot = pose.block(0, 0, 3, 3);
+            output->sensor_orientation_ = Eigen::Quaternionf(rot);
+            pcl::VoxelGridOcclusionEstimationN voxelFilter;
+            voxelFilter.setInputCloud(output);
+            voxelFilter.setLeafSize(0.5f, 0.5f, 0.5f);
+            voxelFilter.initializeVoxelGrid();
+
+            return  voxelFilter.getFilteredPointCloud();
+    }
+
+
+    bool delete_point(pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, pcl::PointNormal point) {
+
+        for (size_t cloud_idx = 0; cloud_idx < cloud->points.size(); cloud_idx++)
+        {
+            pcl::PointNormal cloud_point = cloud->at(cloud_idx);
+            if (std::abs(point.x - cloud_point.x) < EPSILON && std::abs(point.y - cloud_point.y) < EPSILON && std::abs(point.z - cloud_point.z) < EPSILON) {
+                cloud->erase(cloud->begin() + cloud_idx);
+                return true;
+            }
+        }
+        return false;
+    }
+
+
 }
