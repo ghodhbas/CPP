@@ -216,7 +216,11 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float coverage = ((float)o->points.size() / grid.points.size()) * 100;
     cout << "Coverage: " << coverage << endl;
     if (coverage < min_cov) return;
-
+    
+    float dis = calculate_distance(final_path);
+    //calculate path distance
+    cout << "TOTAL DISTANCE: " << dis  << endl;
+    if (dis > 2200.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -268,7 +272,7 @@ int main(int argc, char* argv[])
     float min_radius = strtof(argv[8], NULL);
     float max_radius = strtof(argv[9], NULL);
     float incr_radius = strtof(argv[10], NULL);
-    float min_cov = 98.0f;
+    float min_cov = 99.8f;
     
 
     ///*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
@@ -329,5 +333,3 @@ int main(int argc, char* argv[])
 
    return EXIT_SUCCESS;
 }
-
-

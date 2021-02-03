@@ -81,7 +81,7 @@ namespace ExploratoryPlanner {
             //get neighbouring points within a certain distance
             if (kdtree.radiusSearch(currentPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
             {
-                for (std::size_t i = 0; i < pointIdxRadiusSearch.size(); ++i) {
+                for (std::size_t i = 0; i < pointIdxRadiusSearch.size(); i++) {
                     //skip visited viewpoints
                     if (visited[pointIdxRadiusSearch[i]]) 
                         continue;
@@ -213,7 +213,7 @@ namespace ExploratoryPlanner {
 
         //init voxel cloud after removing observed voxels
         pcl::PointCloud<pcl::PointNormal>::Ptr tmp_voxel_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud<pcl::PointNormal>());
-        for (size_t i = 1; i < voxel_cloud->points.size(); i++)
+        for (int i = 1; i < voxel_cloud->points.size(); i++)
         {
             tmp_voxel_cloud->push_back(voxel_cloud->points[i]);
         }
@@ -227,11 +227,12 @@ namespace ExploratoryPlanner {
 
             float min_cost = 999999999.f;
             int min_cost_idx = 9999999.f;
+            int min_cost_viewpoint_idx = 9999999.f;
 
             //get neighbouring points within a certain distance
             if (kdtree.radiusSearch(currentPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
             {
-                for (std::size_t i = 0; i < pointIdxRadiusSearch.size(); ++i) {
+                for (int i = 0; i < pointIdxRadiusSearch.size(); i++) {
                     //skip visited viewpoints
                     if (visited[pointIdxRadiusSearch[i]]) 
                         continue;
@@ -262,6 +263,7 @@ namespace ExploratoryPlanner {
                     if (cost < min_cost) {
                         min_cost = cost;
                         min_cost_idx = i;
+                        min_cost_viewpoint_idx = observed_voxels_per_viewpoint.size()-1;
                     }
 
                     //std::cout << "    " << point.x
@@ -285,6 +287,14 @@ namespace ExploratoryPlanner {
                 //increase number of points visited
                 nb_visted++;
                
+                //update the voxel grid to delete observed surface -- use erase point for every point in the observed
+                pcl::PointCloud<pcl::PointNormal>::Ptr cloud = observed_voxels_per_viewpoint[min_cost_viewpoint_idx];
+                //loop through tmp cloud and delete corresponding voxels
+
+                for (int i = 0; i < cloud->points.size(); i++)
+                {
+                    delete_point(tmp_voxel_cloud, cloud->points[i]);
+                }
 
 
 
@@ -297,12 +307,6 @@ namespace ExploratoryPlanner {
                     << ")" << endl;
             }
 
-            //update the voxel grid to delete observed surface -- use erase point for every point in the observed
-            pcl::PointCloud<pcl::PointNormal>::Ptr cloud = observed_voxels_per_viewpoint[min_cost_idx];
-            //loop through tmp cloud and delete corresponding voxels
-
-
-            ***********************************************
             
         }
 
@@ -313,9 +317,6 @@ namespace ExploratoryPlanner {
 
 
     vector<int> calculate_coverage(pcl::PointCloud<pcl::PointNormal>::Ptr downsampled_viewpoints, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes) {
-        
-
-        
 
         vector<int> nb_coverage;
         // for every viewpoint
@@ -365,50 +366,6 @@ namespace ExploratoryPlanner {
             voxelFilter.setLeafSize(0.5f, 0.5f, 0.5f);
             voxelFilter.initializeVoxelGrid();
             
-            int state, ret;
-
-            pcl::PointNormal pt, p1, p2;
-            pcl::PointNormal point;
-            std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i> > out_ray;
-            std::vector<pcl::PointNormal> lineSegments;
-            pcl::PointNormal linePoint;
-
-            // iterate over the entire frustum points
-            int count = 0;
-            for (int i = 0; i < (int)output->points.size(); i++)
-            {
-                pcl::PointNormal ptest = output->points[i];
-                Eigen::Vector3i ijk = voxelFilter.getGridCoordinates(ptest.x, ptest.y, ptest.z);
-                // process all free voxels
-                int index = voxelFilter.getCentroidIndexAt(ijk);
-                Eigen::Vector4f centroid = voxelFilter.getCentroidCoordinate(ijk);
-                point = pcl::PointNormal(centroid[0], centroid[1], centroid[2]);
-
-                //if point in the voxel grid
-                if (index != -1)
-                {
-                    out_ray.clear();
-                    ret = voxelFilter.occlusionEstimation(state, out_ray, ijk);
-                    //std::cout<<"State is:"<<state<<"\n";
-                    //if state is not occupied
-                    if (state != 1)
-                    {
-                        // estimate direction to target voxel
-                        Eigen::Vector4f direction = centroid - output->sensor_origin_;
-                        direction.normalize();
-                        // estimate entry point into the voxel grid
-                        float tmin = voxelFilter.rayBoxIntersection(output->sensor_origin_, direction);
-
-                        //make line sedgment from sensor to target
-                        if (tmin != -1)
-                        {
-                            count++;
-
-                        }
-                    }
-                }
-
-            }
 
 
             nb_coverage.push_back(voxelFilter.getFilteredPointCloud().points.size());

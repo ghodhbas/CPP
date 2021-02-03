@@ -40,5 +40,7 @@ namespace ExploratoryPlanner
 	vector<int> calculate_coverage(pcl::PointCloud<pcl::PointNormal>::Ptr downsampled_viewpoints, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes);
 	pcl::PointCloud<pcl::PointNormal> calculate_coverage(pcl::PointNormal point, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes);
 
+
+	bool delete_point(pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, pcl::PointNormal point);
 }
 

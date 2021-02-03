@@ -8,6 +8,7 @@ namespace IO{
         if (!(file >> m)) {
             std::cerr << "cannot read mesh\n";
         }
+        file.close();
 
 
         std::cout << "READING Surface Mesh File: " << filename << std::endl;
@@ -15,6 +16,7 @@ namespace IO{
         if (!file2 || !(file2 >> surface)) {
             std::cerr << "cannot read surface\n";
         }
+        file2.close();
     }
     
 
@@ -105,7 +107,7 @@ namespace IO{
          std::ofstream f(filename);
          if (!f)
          {
-             std::cerr << "Error: cannot open file" << std::endl;
+             std::cerr << "Error: cannot open file hahahah" << std::endl;
              exit(1);
          }
 
