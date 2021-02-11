@@ -155,8 +155,9 @@ vector<pcl::VoxelGridOcclusionEstimation<pcl::PointNormal>> LayeredPP::voxelize_
 
 
 
-std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> LayeredPP::generate_viewpoints(pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> layer)
+std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> LayeredPP::generate_viewpoints(pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> layer, Polyhedron& poly)
 {
+	//CGAL::Side_of_triangle_mesh<Polyhedron, Kernel> inside(poly);
 	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> result;
 
 	pcl::PointCloud<pcl::PointNormal> filtered_cloud = layer.getFilteredPointCloud();
@@ -173,9 +174,17 @@ std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> LayeredPP::generate_vie
 		Eigen::Vector3f look_dir = -normal;
 		look_dir.normalize();
 
-		//TODO double check that this location is free before adding it?
+		//TODO double check that this location is free before adding it? -- close the range if gowing below ground
+		//while ((viewpoint_pos.y() <= 0 || MyMesh::point_inside_mesh(inside, viewpoint_pos)) && (viewpoint_pos-position).norm()<near_plane_d && (viewpoint_pos - position).norm() > far_plane_d) {
+		while ( (viewpoint_pos - position).norm() < near_plane_d && (viewpoint_pos - position).norm() > far_plane_d) {
+			far_plane_d -= 0.2f;
+			viewpoint_pos = position + (far_plane_d*0.1f * normal);
+			//cout <<"Poisition: "<< viewpoint_pos<< " -- Resampling" << endl;
+		}
 
-		result.push_back(std::pair<Eigen::Vector3f, Eigen::Vector3f>(viewpoint_pos, look_dir));
+		//if((viewpoint_pos - position).norm() >= near_plane_d && (viewpoint_pos - position).norm() <= far_plane_d && viewpoint_pos.y() >0)
+		if ((viewpoint_pos - position).norm() >= near_plane_d && (viewpoint_pos - position).norm() <= far_plane_d )
+			result.push_back(std::pair<Eigen::Vector3f, Eigen::Vector3f>(viewpoint_pos, look_dir));
 	}
 
 	return result;

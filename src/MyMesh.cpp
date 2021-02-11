@@ -165,9 +165,8 @@ namespace MyMesh {
     }
 
 
-    void segment_mesh(SurfaceMesh surface) {
+    void  segment_mesh(SurfaceMesh surface, std::vector<SurfaceMesh*>& segments_vec) {
 
-        std::vector<SurfaceMesh*> segments_vec;
         typedef SurfaceMesh::Property_map<surface_face_descriptor, double> Facet_double_map;
         Facet_double_map sdf_property_map;
         sdf_property_map = surface.add_property_map<surface_face_descriptor, double>("f:sdf").first;
@@ -189,6 +188,7 @@ namespace MyMesh {
         typedef CGAL::Face_filtered_graph<SurfaceMesh> Filtered_graph;
         //print area of each segment and then put it in a Mesh and print it in an OFF file
         Filtered_graph segment_mesh(surface, 0, segment_property_map);
+        int seg_name = 1;
         for (std::size_t id = 0; id < number_of_segments; ++id)
         {
             if (id > 0)
@@ -198,6 +198,11 @@ namespace MyMesh {
 
             //doesn't do colors -----------------------
             CGAL::copy_face_graph(segment_mesh, *out);
+         
+
+            //
+            if (out->number_of_faces() <= 2) continue;
+            segments_vec.push_back(out);
             // create a color property map
             SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, CGAL::Color > c;
             bool created;
@@ -206,12 +211,12 @@ namespace MyMesh {
             color_surface(*out, 0, 250, 0, 250);
 
 
-            //
-            //segments_vec.push_back(out);
-
-            std::string out_s = "out/Segment_" + std::to_string(id) + ".ply";
+            //output
+            std::string out_s = "out/Segment_" + std::to_string(seg_name) + ".ply";
             IO::write_PLY(out_s, *out);
+            seg_name++;
         }
+
     }
 
 
@@ -232,6 +237,18 @@ namespace MyMesh {
             i++;
         }
     }
+
+
+    void convert_to_pointcloud(SurfaceMesh& surface, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, SurfaceMesh::Property_map<surface_vertex_descriptor, Vector> normals) {
+
+        int i = 0;
+        for (SurfaceMesh::Vertex_index vi : surface.vertices())
+        {
+            cloud->push_back(pcl::PointNormal(surface.point(vi).x(), surface.point(vi).y(), surface.point(vi).z(), normals[vi].x(), normals[vi].y(), normals[vi].z()));
+            i++;
+        }
+    }
+    
 
 
     void convert_to_pointcloud(Polyhedron& poly, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, std::map<poly_vertex_descriptor, Vector>& vnormals) {
@@ -284,6 +301,21 @@ namespace MyMesh {
 
     bool point_inside_mesh(CGAL::Side_of_triangle_mesh<Polyhedron, Kernel>& inside, Eigen::Vector4f point_eigen) {
         Kernel::Point_3 point = Kernel::Point_3(point_eigen.x(), point_eigen.y(), point_eigen.z());
+        CGAL::Bounded_side res = inside(point);
+        if (res == CGAL::ON_BOUNDED_SIDE || res == CGAL::ON_BOUNDARY) return true;
+        return false;
+    }
+
+    bool point_inside_mesh(CGAL::Side_of_triangle_mesh<Polyhedron, Kernel>& inside, Eigen::Vector3f point_eigen) {
+        Kernel::Point_3 point = Kernel::Point_3(point_eigen.x(), point_eigen.y(), point_eigen.z());
+        CGAL::Bounded_side res = inside(point);
+        if (res == CGAL::ON_BOUNDED_SIDE || res == CGAL::ON_BOUNDARY) return true;
+        return false;
+    }
+
+
+    bool point_inside_mesh(CGAL::Side_of_triangle_mesh<Polyhedron, Kernel>& inside, pcl::PointNormal point_pcl) {
+        Kernel::Point_3 point = Kernel::Point_3(point_pcl.x, point_pcl.y, point_pcl.z);
         CGAL::Bounded_side res = inside(point);
         if (res == CGAL::ON_BOUNDED_SIDE || res == CGAL::ON_BOUNDARY) return true;
         return false;

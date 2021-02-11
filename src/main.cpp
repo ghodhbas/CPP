@@ -27,10 +27,10 @@ float calculate_distance(vector<Eigen::Vector3f > path) {
 
 
 void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius) {
-    float near = 0.5f ;
-    float far = 15.f;
-    float Hfov = 60.f;
-    float Vfov = 90.f;
+    float near = 1.0f ;
+    float far = 4.f;
+    float Hfov = 120.f;
+    float Vfov = 120.f;
     LayeredPP lpp(near, far);
 
     // Step 1 calculate per vertex normals
@@ -44,7 +44,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.525f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
 
     //output voxel grid
@@ -60,8 +60,10 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
     //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
     typedef std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>  Viewpoints;
-    Viewpoints viewpoints = lpp.generate_viewpoints(mesh_voxelgrid);
+    Viewpoints viewpoints = lpp.generate_viewpoints(mesh_voxelgrid, poly);
     pcl::PointCloud<pcl::PointNormal>::Ptr viewpoints_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+    //used to check point inside of poly
+    //CGAL::Side_of_triangle_mesh<Polyhedron, Kernel> inside(poly);
     for (size_t i = 0; i < viewpoints.size(); i++)
     {
         pcl::PointNormal point = pcl::PointNormal(viewpoints.at(i).first[0], viewpoints.at(i).first[1], viewpoints.at(i).first[2], viewpoints.at(i).second[0], viewpoints.at(i).second[1], viewpoints.at(i).second[2]);
@@ -193,7 +195,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
                 float angle = std::acos(dot/ std::sqrtf(dir.squaredNorm()* n.squaredNorm())) * 180.f / M_PI;
                 //cout << angle << endl;
-                if ((180-angle) < 60.f) {
+                if ((180-angle) < 85.f) {
                     //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                         validation_cloud->points.push_back(p);
                     //}
@@ -220,7 +222,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float dis = calculate_distance(final_path);
     //calculate path distance
     cout << "TOTAL DISTANCE: " << dis  << endl;
-    if (dis > 2200.f) return;
+    if (dis > 1000.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -244,7 +246,121 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     IO::write_PLY(std::string(out).append(".ply"), points_test);
 }
 
+void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius) {
+    float near = 1.0f;
+    float far = 4.f;
+    float Hfov = 120.f;
+    float Vfov = 120.f;
+    LayeredPP lpp(near, far);
 
+    // Step 1 calculate per vertex normals
+    std::map<poly_vertex_descriptor, Vector> vnormals;
+    CGAL::Polygon_mesh_processing::compute_vertex_normals(poly, boost::make_assoc_property_map(vnormals));
+
+
+    std::vector<SurfaceMesh*> segments_vec;
+    std::vector<SurfaceMesh::Property_map<surface_vertex_descriptor, Vector>> normals_vec;
+    //segment surface into segemnts
+    MyMesh::segment_mesh(surface, segments_vec);
+
+    vector< vector<Eigen::Vector3f >> path_segments;
+
+    //construct path for every segment
+    for (int i = 0; i < segments_vec.size(); i++)
+    {
+        SurfaceMesh seg_surf = *segments_vec[i];
+        Polyhedron seg_poly;
+        CGAL::copy_face_graph(seg_surf, seg_poly);
+
+        // Step 1 calculate per vertex normals
+        std::map<poly_vertex_descriptor, Vector> vnormals;
+        CGAL::Polygon_mesh_processing::compute_vertex_normals(seg_poly, boost::make_assoc_property_map(vnormals));
+
+        // Step 2: convert surface mesh into point cloud that has normals
+        pcl::PointCloud<pcl::PointNormal>::Ptr cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+        MyMesh::convert_to_pointcloud(seg_poly, cloud, vnormals);
+
+
+        //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
+        pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
+        cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
+
+        //output voxel grid
+        pcl::PointCloud<pcl::PointNormal> grid = mesh_voxelgrid.getFilteredPointCloud();
+        std::vector< Kernel::Point_3> v_grid_io;
+        for (size_t j = 0; j < grid.points.size(); j++)
+        {
+            v_grid_io.push_back(Kernel::Point_3(grid.points[j].x, grid.points[j].y, grid.points[j].z));
+        }
+        IO::write_PLY("out/VoxelGrid"+ std::string("_").append(".ply"), v_grid_io);
+
+
+
+        //Step 4: generate viewpoints from mesh grid and make them into a filtered point cloud
+        typedef std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>  Viewpoints;
+        Viewpoints viewpoints_raw = lpp.generate_viewpoints(mesh_voxelgrid, seg_poly);
+        pcl::PointCloud<pcl::PointNormal>::Ptr viewpoints_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>);
+        //used to check point inside of poly
+        //CGAL::Side_of_triangle_mesh<Polyhedron, Kernel> inside(seg_poly);
+        for (size_t j = 0; j < viewpoints_raw.size(); j++)
+        {
+            pcl::PointNormal point = pcl::PointNormal(viewpoints_raw.at(j).first[0], viewpoints_raw.at(j).first[1], viewpoints_raw.at(j).first[2], viewpoints_raw.at(j).second[0], viewpoints_raw.at(j).second[1], viewpoints_raw.at(j).second[2]);
+            viewpoints_cloud->push_back(point);
+        }
+
+
+        cout << "Total Number of Viewpoints before filter : " << viewpoints_cloud->points.size() << endl;
+
+
+        //Step 5: downsample viewepoints    
+        float ViewpointvoxelRes = curr_res;
+        pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> downsampled_viewpoints_grid;
+        //allow for normal downsampling with position
+        downsampled_viewpoints_grid.setDownsampleAllData(true);
+        downsampled_viewpoints_grid.setInputCloud(viewpoints_cloud);
+        downsampled_viewpoints_grid.setLeafSize(ViewpointvoxelRes, ViewpointvoxelRes, ViewpointvoxelRes);
+        downsampled_viewpoints_grid.initializeVoxelGrid();
+        pcl::PointCloud<pcl::PointNormal>::Ptr downsampled_viewpoints = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(downsampled_viewpoints_grid.getFilteredPointCloud()));
+
+        cout << "Total Number of Viewpoints afterfilter : " << downsampled_viewpoints->points.size() << endl;
+        
+
+        //setup viewpoint format
+        Viewpoints viewpoints;
+        for (size_t j = 0; j < downsampled_viewpoints->points.size(); j++)
+        {
+            pcl::PointNormal point = downsampled_viewpoints->at(j);
+            //std::pair<Eigen::Vector3f, Eigen::Vector3f> tmp = std::pair< Eigen::Vector3f, Eigen::Vector3f>(Eigen::Vector3f(point.x, point.y, point.z), Eigen::Vector3f(point.normal_x, point.normal_y, point.normal_z));
+            viewpoints.push_back(std::pair< Eigen::Vector3f, Eigen::Vector3f>(Eigen::Vector3f(point.x, point.y, point.z), Eigen::Vector3f(point.normal_x, point.normal_y, point.normal_z)));
+        }
+
+        // step 6: Path generation
+        Tree tree(faces(surface).first, faces(surface).second, surface);
+
+
+        Viewpoints final_viewpoints;
+
+        vector< Viewpoints> all_final_viewpoints;
+        vector<Eigen::Vector3f > seg_path;
+
+        ExploratoryPlanner::generate_path_layer(downsampled_viewpoints, viewpoints, grid.makeShared(), near, far, Hfov, Vfov, ViewpointvoxelRes, curr_radius, surface, viewpoints, tree, seg_path, nullptr);
+        all_final_viewpoints.push_back(final_viewpoints);
+
+        std::string p_f = path_file;
+        p_f += std::string("_").append(std::to_string(i+1));
+        IO::write_PLY(std::string(p_f).append(".ply"), seg_path);
+        cout << "path  segment done" << endl;
+
+
+        path_segments.push_back(seg_path);
+    }
+
+
+    //stitch path segments optimally
+
+
+    return;
+}
 
 
 
@@ -272,7 +388,7 @@ int main(int argc, char* argv[])
     float min_radius = strtof(argv[8], NULL);
     float max_radius = strtof(argv[9], NULL);
     float incr_radius = strtof(argv[10], NULL);
-    float min_cov = 99.8f;
+    float min_cov = 97.f;
     
 
     ///*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
@@ -323,6 +439,29 @@ int main(int argc, char* argv[])
                 curr_radius += incr_radius;
             }
             
+            curr_res += incr_res;
+            curr_radius = min_radius;
+        }
+
+    }
+
+
+    if (method._Equal("4")) {
+        float curr_res = min_res;
+        float curr_radius = min_radius;
+        while (curr_res <= max_res) {
+
+            std::cout << "-------------------------- ResolLution: " << curr_res << " -----------------------" << std::endl;
+            while (curr_radius <= max_radius) {
+                auto start = std::chrono::high_resolution_clock::now();
+                std::cout << "             ----------------- Radius:  " << curr_radius << " ---------            " << std::endl;
+                method5(poly, surface, path_file, curr_res, nb_layers, min_cov, curr_radius);
+                auto stop = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                std::cout << "DURATION: " << duration.count() << endl;
+                curr_radius += incr_radius;
+            }
+
             curr_res += incr_res;
             curr_radius = min_radius;
         }

@@ -21,10 +21,11 @@ namespace MyMesh {
 
    void color_visible_surface(pcl::PointCloud<pcl::PointXYZ> visible_s, SurfaceMesh& surface);
   
-   void segment_mesh(SurfaceMesh surface);
+   void segment_mesh(SurfaceMesh surface, std::vector<SurfaceMesh*>& segments_vec);
   
    void convert_to_pointcloud(SurfaceMesh& surface, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
-  
+   void convert_to_pointcloud(SurfaceMesh& surface, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, SurfaceMesh::Property_map<surface_vertex_descriptor, Vector> normals);
+
    //constructs point clound and returns the max and min values for all points (can be used for bounding box)
    void  convert_to_pointcloud(Polyhedron& poly, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, std::map<poly_vertex_descriptor, Vector>& vnormals);
    //get bbox
@@ -33,6 +34,8 @@ namespace MyMesh {
    double max_coordinate(const Polyhedron& poly);
 
    bool point_inside_mesh(CGAL::Side_of_triangle_mesh<Polyhedron, Kernel>& inside, Eigen::Vector4f point_eigen);
+   bool point_inside_mesh(CGAL::Side_of_triangle_mesh<Polyhedron, Kernel>& inside, Eigen::Vector3f point_eigen);
+   bool point_inside_mesh(CGAL::Side_of_triangle_mesh<Polyhedron, Kernel>& inside, pcl::PointNormal point_pcl);
 
    void remove_points_inside_mesh(Polyhedron poly, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& viewpoints, std::vector<std::pair<Eigen::Matrix4f, pcl::PointCloud<pcl::PointXYZ>>>& final_viewpoints, std::vector< Kernel::Point_3>& viewpoints_cloud);
     

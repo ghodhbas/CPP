@@ -15,7 +15,7 @@ public:
 	pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> voxelize(pcl::PointCloud<pcl::PointNormal>::Ptr&  cloud, float voxelRes);
 
 
-	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> generate_viewpoints(pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> layer);
+	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> generate_viewpoints(pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> layer, Polyhedron& poly);
 	
 
 	std::map<int, std::map<int, float>>  calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>&  viewpoints, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface, std::pair<pcl::PointXYZ, pcl::PointXYZ>& bbox, Tree& tree);
@@ -43,6 +43,6 @@ private:
 
 	float near_plane_d;
 	float far_plane_d;
-	float distance_epsilon = 0.25f;
+	float distance_epsilon = 0.1f;
 };
 
