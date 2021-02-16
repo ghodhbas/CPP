@@ -16,6 +16,7 @@ public:
 
 
 	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> generate_viewpoints(pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> layer, Polyhedron& poly);
+	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> generate_seg_viewpoints(pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> layer, Polyhedron& seg_poly, Polyhedron& poly);
 	
 
 	std::map<int, std::map<int, float>>  calculate_distances(std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>&  viewpoints, vector<std::pair<int, int>>& pair_vec, SurfaceMesh& surface, std::pair<pcl::PointXYZ, pcl::PointXYZ>& bbox, Tree& tree);
