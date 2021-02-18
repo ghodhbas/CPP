@@ -27,10 +27,10 @@ float calculate_distance(vector<Eigen::Vector3f > path) {
 
 
 void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius) {
-    float near = 10.0f ;
-    float far = 15.f;
-    float Hfov = 60.f;
-    float Vfov = 90.f;
+    float near = 1.0f ;
+    float far = 4.f;
+    float Hfov = 120.f;
+    float Vfov = 120.f;
     LayeredPP lpp(near, far);
 
     // Step 1 calculate per vertex normals
@@ -195,7 +195,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
                 float angle = std::acos(dot/ std::sqrtf(dir.squaredNorm()* n.squaredNorm())) * 180.f / M_PI;
                 //cout << angle << endl;
-                if ((180-angle) < 60.f) {
+                if ((180-angle) <= 60.f) {
                     //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                         validation_cloud->points.push_back(p);
                     //}
@@ -222,7 +222,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float dis = calculate_distance(final_path);
     //calculate path distance
     cout << "TOTAL DISTANCE: " << dis  << endl;
-    if (dis > 2500.f) return;
+    if (dis > 350.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -249,10 +249,10 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 
 void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius, std::vector<SurfaceMesh*>& segments_vec) {
-    float near = 10.0f;
-    float far = 15.f;
-    float Hfov = 60.f;
-    float Vfov = 90.f;
+    float near = 1.0f;
+    float far = 4.f;
+    float Hfov = 120.f;
+    float Vfov = 120.f;
     LayeredPP lpp(near, far);
 
     Tree tree(faces(surface).first, faces(surface).second, surface);//used for mesh line collision check
@@ -487,7 +487,7 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
                 float angle = std::acos(dot / std::sqrtf(dir.squaredNorm() * n.squaredNorm())) * 180.f / M_PI;
                 //cout << angle << endl;
-                if ((180 - angle) < 60.f) {
+                if ((180 - angle) < 85.f) {
                     //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                     validation_cloud->points.push_back(p);
                     //}
@@ -514,7 +514,7 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float dis = calculate_distance(final_path);
     //calculate path distance
     cout << "TOTAL DISTANCE: " << dis << endl;
-    if (dis > 2500.f) return;
+    if (dis > 450.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -567,7 +567,7 @@ int main(int argc, char* argv[])
     float min_radius = strtof(argv[8], NULL);
     float max_radius = strtof(argv[9], NULL);
     float incr_radius = strtof(argv[10], NULL);
-    float min_cov = 99.f;
+    float min_cov = 99.0f;
     
 
     ///*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */

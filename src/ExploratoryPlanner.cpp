@@ -218,7 +218,7 @@ namespace ExploratoryPlanner {
             tmp_voxel_cloud->push_back(voxel_cloud->points[i]);
         }
 
-        vector< pcl::PointCloud<pcl::PointNormal>::Ptr> observed_voxels_per_viewpoint;
+        
 
 
         while (nb_visted < downsampled_viewpoints->points.size()) {
@@ -228,6 +228,7 @@ namespace ExploratoryPlanner {
             float min_cost = 999999999.f;
             int min_cost_idx = 9999999.f;
             int min_cost_viewpoint_idx = 9999999.f;
+            vector< pcl::PointCloud<pcl::PointNormal>::Ptr> observed_voxels_per_viewpoint;
 
             //get neighbouring points within a certain distance
             if (kdtree.radiusSearch(currentPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
