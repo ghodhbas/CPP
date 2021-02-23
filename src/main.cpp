@@ -24,6 +24,160 @@ float calculate_distance(vector<Eigen::Vector3f > path) {
     return total;
 }
 
+bool stitch_segments(vector< vector<Eigen::Vector3f >>& path_segments, SurfaceMesh& surface, Tree& tree, vector<Eigen::Vector3f >& final_path){
+    //stitch path segments 
+    //float dis = calculate_distance(final_path);
+
+    //select segment closest to  to floor 
+    int idx = 0;
+    float y_pos = path_segments[0][0].y();
+    for (int i = 1; i < path_segments.size(); i++)
+    {
+        if (path_segments[i][0].y() < y_pos) {
+            idx = i;
+            y_pos = path_segments[i][0].y();
+        }
+    }
+
+
+    //first segment
+    for (int i = 0; i < path_segments[idx].size(); i++)
+    {
+        final_path.push_back(path_segments[idx][i]);
+    }
+    path_segments.erase(path_segments.begin() + idx);
+
+
+    //find segment with start point closest to end point of previous segmentee
+    while (path_segments.size() > 0) {
+        Eigen::Vector3f prev = final_path[final_path.size() - 1];
+
+        float min_distance = 99999999.f;
+        idx = 99999;
+        for (int i = 0; i < path_segments.size(); i++)
+        {
+            Eigen::Vector3f start = path_segments[i][0];
+
+            // if no collision
+            if (!MyMesh::ray_box_interstction(surface, Eigen::Vector3f(start.x(), start.y(), start.z()), Eigen::Vector3f(prev.x(), prev.y(), prev.z()), tree)) {
+                float distance = (prev - start).norm();
+                if (distance < min_distance) {
+                    idx = i;
+                    min_distance = distance;
+                }
+            }
+
+        }
+
+        if (idx == 99999) {
+            cout << "Couldnt find a possible next segment to attatch to " << endl;
+            cout << "Abondonning  this trial" << endl;
+            return false;
+        }
+
+        vector<Eigen::Vector3f > chosen_seg = path_segments[idx];
+        for (int i = 0; i < chosen_seg.size(); i++)
+        {
+            final_path.push_back(chosen_seg[i]);
+        }
+        path_segments.erase(path_segments.begin() + idx);
+
+    }
+
+    return true;
+}
+
+void heapPermutation(vector<int>& a, int size, vector<vector<int>>& all_perms)
+{
+    // if size becomes 1 then prints the obtained
+    // permutation
+    if (size == 1) {
+        all_perms.push_back(a);
+        return;
+    }
+
+
+    heapPermutation(a, size - 1, all_perms);
+
+    for (int i = 0; i < size-1; i++) {
+        
+
+        // if size is odd, swap 0th i.e (first) and 
+        // (size-1)th i.e (last) element
+        if (size % 2 == 0)
+            swap(a[i], a[size - 1]);
+
+        // If size is even, swap ith and 
+        // (size-1)th i.e (last) element
+        else
+            swap(a[0], a[size - 1]);
+        heapPermutation(a, size - 1, all_perms);
+    }
+}
+
+bool stitch_segments2(vector< vector<Eigen::Vector3f >>& path_segments, SurfaceMesh& surface, Tree& tree, vector<Eigen::Vector3f >& final_path) {
+
+    //options 1: create midpoint, create graph and make graph
+
+    //option 2: creta graph iwth start and end make distance between start and end 0;
+
+
+    //option 3: the number of segment is usually low so brute force is fine?
+    int nb_nodes = path_segments.size();
+    vector<int> node_idx(nb_nodes);
+    std::iota(node_idx.begin(), node_idx.end(), 0);
+
+    vector<vector<int>> all_perms;
+    heapPermutation(node_idx, nb_nodes,  all_perms);
+
+    vector<float> all_distances;
+    float max_distance = 99999999.f;
+    bool path_found = false;
+
+    for (int i = 0; i < all_perms.size(); i++)
+    {   
+        vector<int> perm = all_perms[i];
+        vector<Eigen::Vector3f > path;
+
+        //for reach permuation
+        bool valid = true;
+        for (int j = 0; j < perm.size(); j++)
+        {
+            //get each segment and check if the next one is attatchable
+            vector<Eigen::Vector3f > segment = path_segments[perm[j]];
+            
+            if (j > 0) {
+                // if no collision
+                Eigen::Vector3f prev = path[path.size() - 1];
+                if (MyMesh::ray_box_interstction(surface, Eigen::Vector3f(segment[0].x(), segment[0].y(), segment[0].z()), Eigen::Vector3f(prev.x(), prev.y(), prev.z()), tree)) {
+                    valid = false;
+                    break;
+                }
+            }
+
+            for (int k = 0; k < segment.size(); k++)
+            {
+                path.push_back(segment[k]);
+            }
+            
+        }
+
+        if (valid) {
+            //cout << " VALID PATH FOUND" << endl;
+            float dist = calculate_distance(path);
+            if (dist < max_distance) {
+                path_found = true;
+                final_path = path;
+            }
+        }
+
+
+    }
+
+    if (path_found)return true;
+    return false;
+}
+
 
 
 void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius) {
@@ -351,65 +505,13 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     }
 
 
-    //stitch path segments 
-    //float dis = calculate_distance(final_path);
-    
-    //select segment closest to  to floor 
-    int idx = 0;
-    float y_pos = path_segments[0][0].y();
-    for (int i = 1; i < path_segments.size(); i++)
-    {
-        if (path_segments[i][0].y() < y_pos) {
-            idx = i;
-            y_pos = path_segments[i][0].y();
-        }
-    }
-
-
-    //first segment
     vector<Eigen::Vector3f > final_path;
-    for (int i = 0; i < path_segments[idx].size(); i++)
-    {
-        final_path.push_back(path_segments[idx][i]);
-    }
-    path_segments.erase(path_segments.begin() + idx);
-
-
-    //find segment with start point closest to end point of previous segmentee
-    while (path_segments.size() > 0) {
-        Eigen::Vector3f prev = final_path[final_path.size() - 1];
-
-        float min_distance = 99999999.f;
-        idx = 99999;
-        for (int i = 0; i < path_segments.size(); i++)
-        {
-            Eigen::Vector3f start = path_segments[i][0];
-            
-            // if no collision
-            if (!MyMesh::ray_box_interstction(surface, Eigen::Vector3f(start.x(), start.y(), start.z()), Eigen::Vector3f(prev.x(), prev.y(), prev.z()), tree)) {
-                float distance = (prev - start).norm();
-                if (distance < min_distance) {
-                    idx = i;
-                    min_distance = distance;
-                }
-            }
-
-        }
-
-        if (idx == 99999) {
-            cout << "Couldnt find a possible next segment to attatch to " << endl;
-            cout << "Abondonning  this trial" << endl;
-            return;
-        }
-
-        vector<Eigen::Vector3f > chosen_seg = path_segments[idx];
-        for (int i = 0; i < chosen_seg.size(); i++)
-        {
-            final_path.push_back(chosen_seg[i]);
-        }
-        path_segments.erase(path_segments.begin() + idx);
-
-    }
+    bool found = stitch_segments2(path_segments, surface, tree, final_path);
+    if (!found) {
+        cout << "Path not found" << endl;
+        return;
+   }
+    
 
 
     /****************************************** VALIDATION **************************************************************/
@@ -487,7 +589,7 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
                 float angle = std::acos(dot / std::sqrtf(dir.squaredNorm() * n.squaredNorm())) * 180.f / M_PI;
                 //cout << angle << endl;
-                if ((180 - angle) < 85.f) {
+                if ((180 - angle) < 60.f) {
                     //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                     validation_cloud->points.push_back(p);
                     //}
@@ -514,7 +616,7 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float dis = calculate_distance(final_path);
     //calculate path distance
     cout << "TOTAL DISTANCE: " << dis << endl;
-    if (dis > 450.f) return;
+    if (dis > 350.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -545,6 +647,9 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 int main(int argc, char* argv[])
 {
+   
+
+
     Polyhedron poly;
     SurfaceMesh surface;
 
@@ -567,7 +672,7 @@ int main(int argc, char* argv[])
     float min_radius = strtof(argv[8], NULL);
     float max_radius = strtof(argv[9], NULL);
     float incr_radius = strtof(argv[10], NULL);
-    float min_cov = 99.0f;
+    float min_cov = 99.1f;
     
 
     ///*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */

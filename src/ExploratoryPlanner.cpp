@@ -203,8 +203,6 @@ namespace ExploratoryPlanner {
         float radius = curr_radius; //search radius
 
 
-
-
         //calculate coverage 
         // calculate the coverage for viewpoints - to be used in huristic
         vector<int> coverage_per_viewpoint = calculate_coverage(downsampled_viewpoints, voxel_cloud, near, far, Hfov, Vfov, voxelRes);
