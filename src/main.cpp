@@ -178,13 +178,11 @@ bool stitch_segments2(vector< vector<Eigen::Vector3f >>& path_segments, SurfaceM
     return false;
 }
 
-
-
-void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius) {
-    float near = 1.0f ;
-    float far = 4.f;
-    float Hfov = 120.f;
-    float Vfov = 120.f;
+void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius) {
+    float near = 10.0f ;
+    float far = 20.f;
+    float Hfov = 60.f;
+    float Vfov = 60.f;
     LayeredPP lpp(near, far);
 
     // Step 1 calculate per vertex normals
@@ -286,7 +284,9 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     for (size_t i = 1; i < layer_viewpoints.size(); i++)
     {
         Viewpoints viewpoints;
-        ExploratoryPlanner::generate_path_layer(layer_viewpoints[i], viewpoints_list[i], grid.makeShared(), near, far, Hfov, Vfov, ViewpointvoxelRes, curr_radius, surface, viewpoints, tree, final_path, last_point);
+        if (!ExploratoryPlanner::generate_path_layer(layer_viewpoints[i], viewpoints_list[i], grid.makeShared(), near, far, Hfov, Vfov, ViewpointvoxelRes, curr_radius, surface, viewpoints, tree, final_path, last_point)) {
+            return;
+        }
         last_point = &final_path[final_path.size() - 1];
         all_final_viewpoints.push_back(viewpoints);
     }
@@ -349,7 +349,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
                 float angle = std::acos(dot/ std::sqrtf(dir.squaredNorm()* n.squaredNorm())) * 180.f / M_PI;
                 //cout << angle << endl;
-                if ((180-angle) <= 60.f) {
+                if ((180-angle) <= 30.f) {
                     //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                         validation_cloud->points.push_back(p);
                     //}
@@ -376,7 +376,7 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float dis = calculate_distance(final_path);
     //calculate path distance
     cout << "TOTAL DISTANCE: " << dis  << endl;
-    if (dis > 350.f) return;
+    if (dis > 1600.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -402,9 +402,9 @@ void method4(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 
 
-void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius, std::vector<SurfaceMesh*>& segments_vec) {
-    float near = 1.0f;
-    float far = 4.f;
+void method2(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius, std::vector<SurfaceMesh*>& segments_vec) {
+    float near = 10.0f;
+    float far = 25.f;
     float Hfov = 120.f;
     float Vfov = 120.f;
     LayeredPP lpp(near, far);
@@ -417,7 +417,7 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 
     vector< Viewpoints> all_final_viewpoints;
-    //construct path for every segment
+    //construct path for every segment 
     for (int i = 0; i < segments_vec.size(); i++)
     {
         SurfaceMesh seg_surf = *segments_vec[i];
@@ -506,8 +506,7 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 
     vector<Eigen::Vector3f > final_path;
-    bool found = stitch_segments2(path_segments, surface, tree, final_path);
-    if (!found) {
+    if (!stitch_segments2(path_segments, surface, tree, final_path)) {
         cout << "Path not found" << endl;
         return;
    }
@@ -589,7 +588,7 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
                 float angle = std::acos(dot / std::sqrtf(dir.squaredNorm() * n.squaredNorm())) * 180.f / M_PI;
                 //cout << angle << endl;
-                if ((180 - angle) < 60.f) {
+                if ((180 - angle) <= 30.f) {
                     //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                     validation_cloud->points.push_back(p);
                     //}
@@ -616,7 +615,7 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float dis = calculate_distance(final_path);
     //calculate path distance
     cout << "TOTAL DISTANCE: " << dis << endl;
-    if (dis > 350.f) return;
+    if (dis > 1600.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -647,9 +646,6 @@ void method5(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 int main(int argc, char* argv[])
 {
-   
-
-
     Polyhedron poly;
     SurfaceMesh surface;
 
@@ -672,42 +668,9 @@ int main(int argc, char* argv[])
     float min_radius = strtof(argv[8], NULL);
     float max_radius = strtof(argv[9], NULL);
     float incr_radius = strtof(argv[10], NULL);
-    float min_cov = 99.1f;
+    float min_cov = 90.f;
     
-
-    ///*--------------------------------  METHOD 1: Set cover + TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    //if (method._Equal("0")) {
-    //
-    //    auto start = std::chrono::high_resolution_clock::now();
-    //    method_1(poly, surface, argv);
-    //    auto stop = std::chrono::high_resolution_clock::now();
-    //    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    //    cout << "DURATION: " << duration.count() << endl;
-    //}
-    ///*--------------------------------  METHOD 2: layer +normal construction & TSP --------           START FINDING PATH ALGORITHM    ---------------------          */
-    //
-    //if (method._Equal("1")){
-    //
-    //    auto start = std::chrono::high_resolution_clock::now();
-    //    method2(poly, surface, argv);
-    //    auto stop = std::chrono::high_resolution_clock::now();
-    //    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    //    std::cout << "DURATION: " << duration.count() << endl;
-    //
-    //}
-    //
-    ///*--------------------------------  METHOD 3: Exploratory with huristic--------           START FINDING PATH ALGORITHM    ---------------------          */
-    //if (method._Equal("2")) {
-    //    auto start = std::chrono::high_resolution_clock::now();
-    //    method3(poly, surface, argv);
-    //    auto stop = std::chrono::high_resolution_clock::now();
-    //    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    //    std::cout << "DURATION: " << duration.count() << endl;
-    //
-    //}
-
-
-    if (method._Equal("3")) {
+    if (method._Equal("1")) {
         float curr_res = min_res; 
         float curr_radius = min_radius;
         while(curr_res<=max_res){
@@ -716,7 +679,7 @@ int main(int argc, char* argv[])
             while (curr_radius <= max_radius) {
                 auto start = std::chrono::high_resolution_clock::now();
                 std::cout << "             ----------------- Radius:  " << curr_radius << " ---------            " << std::endl;
-                method4(poly, surface, path_file, curr_res, nb_layers, min_cov, curr_radius);
+                method1(poly, surface, path_file, curr_res, nb_layers, min_cov, curr_radius);
                 auto stop = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
                 std::cout << "DURATION: " << duration.count() << endl;
@@ -730,7 +693,7 @@ int main(int argc, char* argv[])
     }
 
 
-    if (method._Equal("4")) {
+    if (method._Equal("2")) {
         float curr_res = min_res;
         float curr_radius = min_radius;
         std::vector<SurfaceMesh*> segments_vec;
@@ -743,7 +706,7 @@ int main(int argc, char* argv[])
             while (curr_radius <= max_radius) {
                 auto start = std::chrono::high_resolution_clock::now();
                 std::cout << "             ----------------- Radius:  " << curr_radius << " ---------            " << std::endl;
-                method5(poly, surface, path_file, curr_res, nb_layers, min_cov, curr_radius, segments_vec);
+                method2(poly, surface, path_file, curr_res, nb_layers, min_cov, curr_radius, segments_vec);
                 auto stop = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
                 std::cout << "DURATION: " << duration.count() << endl;

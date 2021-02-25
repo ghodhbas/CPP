@@ -149,7 +149,7 @@ namespace ExploratoryPlanner {
 
 
 
-    void  generate_path_layer(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes, float curr_radius, SurfaceMesh& surface, Viewpoints& final_viewpoints, Tree& tree, vector<Eigen::Vector3f >& final_path,  Eigen::Vector3f* last_point ) {
+    bool  generate_path_layer(pcl::PointCloud<pcl::PointNormal>::Ptr& downsampled_viewpoints, Viewpoints& viewpoints_list, pcl::PointCloud<pcl::PointNormal>::Ptr voxel_cloud, float near, float far, float Hfov, float Vfov, float voxelRes, float curr_radius, SurfaceMesh& surface, Viewpoints& final_viewpoints, Tree& tree, vector<Eigen::Vector3f >& final_path,  Eigen::Vector3f* last_point ) {
 
         //build map to mark if index is visited
         std::map<int, float> visited;
@@ -189,6 +189,7 @@ namespace ExploratoryPlanner {
                 }
                     j++;
             }
+            if (min_idx > 9999999) return false;
             current_idx = min_idx;
             currentPoint = downsampled_viewpoints->points[min_idx];
             
@@ -205,7 +206,7 @@ namespace ExploratoryPlanner {
 
         //calculate coverage 
         // calculate the coverage for viewpoints - to be used in huristic
-        vector<int> coverage_per_viewpoint = calculate_coverage(downsampled_viewpoints, voxel_cloud, near, far, Hfov, Vfov, voxelRes);
+        //vector<int> coverage_per_viewpoint = calculate_coverage(downsampled_viewpoints, voxel_cloud, near, far, Hfov, Vfov, voxelRes);
 
 
 
@@ -309,7 +310,7 @@ namespace ExploratoryPlanner {
             
         }
 
-        
+        return true;
 
 	}
 

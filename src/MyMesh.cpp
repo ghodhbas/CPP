@@ -177,8 +177,8 @@ namespace MyMesh {
         // create a property-map for segment-ids
         typedef SurfaceMesh::Property_map<surface_face_descriptor, std::size_t> Facet_int_map;
         Facet_int_map segment_property_map = surface.add_property_map<surface_face_descriptor, std::size_t>("f:sid").first;;
-        const std::size_t number_of_clusters = 4;       // use 4 clusters in soft clustering
-        const double smoothing_lambda = 0.4;  // importance of surface features, suggested to be in-between [0,1]
+        const std::size_t number_of_clusters = 4  ;       // use 4 clusters in soft clustering
+        const double smoothing_lambda = 0.5;  // importance of surface features, suggested to be in-between [0,1]
         // Note that we can use the same SDF values (sdf_property_map) over and over again for segmentation.
         // This feature is relevant for segmenting the mesh several times with different parameters.
         size_t number_of_segments = CGAL::segmentation_from_sdf_values(surface, sdf_property_map, segment_property_map, number_of_clusters, smoothing_lambda);
