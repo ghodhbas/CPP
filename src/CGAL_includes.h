@@ -38,13 +38,26 @@
 #include <CGAL/AABB_face_graph_triangle_primitive.h>
 #include <CGAL/Polygon_mesh_processing/compute_normal.h>
 #include <CGAL/Polygon_mesh_processing/orientation.h>
+#include <CGAL/Polyhedron_items_with_id_3.h>
 
 #include <CGAL/Polygon_mesh_processing/bbox.h>
+#include <CGAL/extract_mean_curvature_flow_skeleton.h>
+
+
+
+#include <CGAL/Polygon_mesh_processing/orient_polygon_soup.h>
+#include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
+#include <CGAL/Polygon_mesh_processing/orientation.h>
+
+#include <CGAL/IO/OFF_reader.h>
 
 //treat floating points exactly
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef CGAL::Surface_mesh<Kernel::Point_3> SurfaceMesh;
-typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
+//typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
+
+typedef CGAL::Polyhedron_3<Kernel, CGAL::Polyhedron_items_with_id_3> Polyhedron;
+
 typedef Kernel::Point_3 Point;
 typedef Kernel::Vector_3 Vector;
 typedef Kernel::Ray_3 Ray;
@@ -62,6 +75,7 @@ typedef boost::graph_traits<SurfaceMesh>::vertex_descriptor surface_vertex_descr
 typedef boost::graph_traits<SurfaceMesh>::face_descriptor surface_face_descriptor;
 typedef boost::graph_traits<Polyhedron>::vertex_descriptor poly_vertex_descriptor;
 typedef boost::graph_traits<Polyhedron>::face_descriptor   poly_face_descriptor;
+typedef boost::graph_traits<Polyhedron>::halfedge_descriptor         poly_halfedge_descriptor;
 typedef Polyhedron::Vertex_iterator        poly_vertex_iterator;
 
 //ray box
@@ -69,3 +83,35 @@ typedef CGAL::AABB_face_graph_triangle_primitive<SurfaceMesh> Primitive;
 typedef CGAL::AABB_traits<Kernel, Primitive> Traits;
 typedef CGAL::AABB_tree<Traits> Tree;
 typedef boost::optional<Tree::Intersection_and_primitive_id<Ray>::Type> Ray_intersection;
+
+
+
+
+
+//sekelotnization
+
+typedef CGAL::Mean_curvature_flow_skeletonization<Polyhedron>        Skeletonization;
+typedef Skeletonization::Skeleton                                    Skeleton;
+typedef Skeleton::vertex_descriptor                                  Skeleton_vertex;
+
+
+template<class ValueType>
+struct Facet_with_id_pmap
+    : public boost::put_get_helper<ValueType&,
+    Facet_with_id_pmap<ValueType> >
+{
+    typedef poly_face_descriptor key_type;
+    typedef ValueType value_type;
+    typedef value_type& reference;
+    typedef boost::lvalue_property_map_tag category;
+    Facet_with_id_pmap(
+        std::vector<ValueType>& internal_vector
+    ) : internal_vector(internal_vector) { }
+    reference operator[](key_type key) const
+    {
+        return internal_vector[key->id()];
+    }
+private:
+    std::vector<ValueType>& internal_vector;
+};
+

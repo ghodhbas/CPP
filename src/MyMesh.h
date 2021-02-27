@@ -22,6 +22,7 @@ namespace MyMesh {
    void color_visible_surface(pcl::PointCloud<pcl::PointXYZ> visible_s, SurfaceMesh& surface);
   
    void segment_mesh(SurfaceMesh surface, std::vector<SurfaceMesh*>& segments_vec);
+   void skeleton_segment_mesh(Polyhedron& poly, std::vector<SurfaceMesh*>& segments_vec);
   
    void convert_to_pointcloud(SurfaceMesh& surface, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
    void convert_to_pointcloud(SurfaceMesh& surface, pcl::PointCloud<pcl::PointNormal>::Ptr& cloud, SurfaceMesh::Property_map<surface_vertex_descriptor, Vector> normals);

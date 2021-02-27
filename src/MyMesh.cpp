@@ -220,6 +220,84 @@ namespace MyMesh {
     }
 
 
+    void  skeleton_segment_mesh(Polyhedron& poly, std::vector<SurfaceMesh*>& segments_vec) {
+
+        // extract the skeleton
+        Skeleton skeleton;
+        CGAL::extract_mean_curvature_flow_skeleton(poly, skeleton);
+
+        // init the polyhedron simplex indices
+        CGAL::set_halfedgeds_items_id(poly);
+
+        //for each input vertex compute its distance to the skeleton
+        std::vector<double> distances(num_vertices(poly));
+        for (Skeleton_vertex v : CGAL::make_range(vertices(skeleton)))
+        {
+            const Point& skel_pt = skeleton[v].point;
+            for (poly_vertex_descriptor mesh_v : skeleton[v].vertices)
+            {
+                const Point& mesh_pt = mesh_v->point();
+                distances[mesh_v->id()] = std::sqrt(CGAL::squared_distance(skel_pt, mesh_pt));
+            }
+        }
+        // create a property-map for sdf values
+        std::vector<double> sdf_values(num_faces(poly));
+        Facet_with_id_pmap<double> sdf_property_map(sdf_values);
+        // compute sdf values with skeleton
+        for (poly_face_descriptor f : faces(poly))
+        {
+            double dist = 0;
+            for (poly_halfedge_descriptor hd : halfedges_around_face(halfedge(f, poly), poly))
+                dist += distances[target(hd, poly)->id()];
+            sdf_property_map[f] = dist / 3.;
+        }
+        // post-process the sdf values
+        CGAL::sdf_values_postprocessing(poly, sdf_property_map);
+        // create a property-map for segment-ids (it is an adaptor for this case)
+        std::vector<std::size_t> segment_ids(num_faces(poly));
+        Facet_with_id_pmap<std::size_t> segment_property_map(segment_ids);
+        // segment the mesh using default parameters
+        const std::size_t number_of_clusters = 4;       // use 4 clusters in soft clustering
+        const double smoothing_lambda = 0.5;  // importance of surface features, suggested to be in-between [0,1]
+        size_t number_of_segments =  CGAL::segmentation_from_sdf_values(poly, sdf_property_map, segment_property_map);
+
+
+        std::cout << "Number of segments: " << number_of_segments << std::endl;
+
+        typedef CGAL::Face_filtered_graph<Polyhedron> Filtered_graph;
+        //print area of each segment and then put it in a Mesh and print it in an OFF file
+        Filtered_graph segment_mesh(poly, 0, segment_property_map);
+        int seg_name = 1;
+        for (std::size_t id = 0; id < number_of_segments; ++id)
+        {
+            if (id > 0)
+                segment_mesh.set_selected_faces(id, segment_property_map);
+            //std::cout << "Segment " << id << "'s area is : " << CGAL::Polygon_mesh_processing::area(segment_mesh) << std::endl;
+            SurfaceMesh* out = new SurfaceMesh();
+
+            //doesn't do colors -----------------------
+            CGAL::copy_face_graph(segment_mesh, *out);
+
+
+            //
+            if (out->number_of_faces() <= 2) continue;
+            segments_vec.push_back(out);
+            // create a color property map
+            SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, CGAL::Color > c;
+            bool created;
+            boost::tie(c, created) = out->add_property_map<surface_vertex_descriptor, CGAL::Color>("v:color", CGAL::Color::Color());
+            assert(created);
+            color_surface(*out, 0, 250, 0, 250);
+
+
+            //output
+            std::string out_s = "out/Segment_" + std::to_string(seg_name) + ".ply";
+            IO::write_PLY(out_s, *out);
+            seg_name++;
+        }
+    }
+
+
     void convert_to_pointcloud(SurfaceMesh& surface, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
 
         //create point cloud
