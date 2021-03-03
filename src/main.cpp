@@ -179,10 +179,10 @@ bool stitch_segments2(vector< vector<Eigen::Vector3f >>& path_segments, SurfaceM
 }
 
 void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius) {
-    float near = 1.0f ;
-    float far = 4.f;
-    float Hfov = 120.f;
-    float Vfov = 120.f;
+    float near = 2.0f ;
+    float far = 66.5f;
+    float Hfov =66.5f;
+    float Vfov = 90.f;
     LayeredPP lpp(near, far);
 
     // Step 1 calculate per vertex normals
@@ -196,7 +196,7 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 1.f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
 
     //output voxel grid
@@ -349,7 +349,7 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
                 float angle = std::acos(dot/ std::sqrtf(dir.squaredNorm()* n.squaredNorm())) * 180.f / M_PI;
                 //cout << angle << endl;
-                if ((180-angle) <= 60.f) {
+                if ((180-angle) <= 75.f) {
                     //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                         validation_cloud->points.push_back(p);
                     //}
@@ -367,7 +367,7 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     pcl::PointCloud<pcl::PointNormal>::Ptr o(new pcl::PointCloud<pcl::PointNormal>);
     clean.setDownsampleAllData(true);
     clean.setInputCloud(validation_cloud);
-    clean.setLeafSize(0.1f, 0.1f, 0.1f);
+    clean.setLeafSize(1.f, 1.f, 1.f);
     clean.filter(*o);
     float coverage = ((float)o->points.size() / grid.points.size()) * 100;
     cout << "Coverage: " << coverage << endl;
@@ -376,7 +376,7 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float dis = calculate_distance(final_path);
     //calculate path distance
     cout << "TOTAL DISTANCE: " << dis  << endl;
-    if (dis > 1500.f) return;
+    //if (dis > 2000.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -649,8 +649,6 @@ int main(int argc, char* argv[])
     Polyhedron poly;
     SurfaceMesh surface;
 
-
-
     //set up MEesh
     IO::import_OFF_file(poly, surface, argv[1]);
     //import_OBJ_file(m, "plane.obj");
@@ -670,7 +668,7 @@ int main(int argc, char* argv[])
     float min_radius = strtof(argv[8], NULL);
     float max_radius = strtof(argv[9], NULL);
     float incr_radius = strtof(argv[10], NULL);
-    float min_cov = 95.f;
+    float min_cov = 97.f;
     
     if (method._Equal("1")) {
         float curr_res = min_res; 
@@ -700,8 +698,8 @@ int main(int argc, char* argv[])
         float curr_radius = min_radius;
         std::vector<SurfaceMesh*> segments_vec;
         //segment surface into segemnts
-        //MyMesh::segment_mesh(surface, segments_vec);
-        MyMesh::skeleton_segment_mesh(poly, segments_vec);
+        MyMesh::segment_mesh(surface, segments_vec);
+        //MyMesh::skeleton_segment_mesh(poly, segments_vec);
 
         while (curr_res <= max_res) {
 
