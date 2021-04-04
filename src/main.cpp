@@ -178,11 +178,28 @@ bool stitch_segments2(vector< vector<Eigen::Vector3f >>& path_segments, SurfaceM
     return false;
 }
 
+template <typename T>
+vector<size_t> sort_indexes(const vector<T>& v) {
+
+    // initialize original index locations
+    vector<size_t> idx(v.size());
+    iota(idx.begin(), idx.end(), 0);
+
+    // sort indexes based on comparing values in v
+    // using std::stable_sort instead of std::sort
+    // to avoid unnecessary index re-orderings
+    // when v contains elements of equal values 
+    stable_sort(idx.begin(), idx.end(),
+        [&v](size_t i1, size_t i2) {return v[i1] < v[i2]; });
+
+    return idx;
+}
+
 void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius) {
-    float near = 2.0f ;
-    float far = 66.5f;
-    float Hfov =66.5f;
-    float Vfov = 90.f;
+    float near = 1.f ;
+    float far = 8.f;
+    float Hfov = 120.f;
+    float Vfov = 120.f;
     LayeredPP lpp(near, far);
 
     // Step 1 calculate per vertex normals
@@ -196,7 +213,7 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 
     //Step 3: voxalize the whole cloud and get cloud - Int he paper this si the volumetric data. / octree
-    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 1.f);
+    pcl::VoxelGridOcclusionEstimation<pcl::PointNormal> mesh_voxelgrid = lpp.voxelize(cloud, 0.5f);
     cout << "VOXELGRID SIZE: " << mesh_voxelgrid.getFilteredPointCloud().points.size() << endl;
 
     //output voxel grid
@@ -223,7 +240,18 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     }
     
 
-    cout << "Total Number of Viewpoints before filter : " << viewpoints_cloud->points.size() << endl;
+    //cout << "Total Number of Viewpoints before filter : " << viewpoints_cloud->points.size() << endl;
+    //std::vector< Kernel::Point_3> vpts;
+    //for (size_t i = 0; i < viewpoints_cloud->points.size(); i++)
+    //{
+    //    vpts.push_back(Kernel::Point_3(viewpoints_cloud->points[i].x, viewpoints_cloud->points[i].y, viewpoints_cloud->points[i].z));
+    //}
+    //
+    //string outvpts = "out/viewpoints_before";
+    //outvpts += std::string("_").append(std::to_string(curr_res));
+    //outvpts += std::string("_").append(std::to_string(curr_radius));
+    //IO::write_PLY(std::string(outvpts).append(".ply"), vpts);
+
 
 
     //Step 5: downsample viewepoints    
@@ -237,6 +265,8 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     pcl::PointCloud<pcl::PointNormal>::Ptr downsampled_viewpoints = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud <pcl::PointNormal>(downsampled_viewpoints_grid.getFilteredPointCloud()));
 
     cout << "Total Number of Viewpoints afterfilter : " << downsampled_viewpoints->points.size() << endl;
+
+    
 
 
     //calculate BBox of cloud
@@ -349,7 +379,7 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
                 float angle = std::acos(dot/ std::sqrtf(dir.squaredNorm()* n.squaredNorm())) * 180.f / M_PI;
                 //cout << angle << endl;
-                if ((180-angle) <= 75.f) {
+                if ((180-angle) <= 60.f) {
                     //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                         validation_cloud->points.push_back(p);
                     //}
@@ -367,7 +397,7 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     pcl::PointCloud<pcl::PointNormal>::Ptr o(new pcl::PointCloud<pcl::PointNormal>);
     clean.setDownsampleAllData(true);
     clean.setInputCloud(validation_cloud);
-    clean.setLeafSize(1.f, 1.f, 1.f);
+    clean.setLeafSize(0.2f, 0.2f, 0.2f);
     clean.filter(*o);
     float coverage = ((float)o->points.size() / grid.points.size()) * 100;
     cout << "Coverage: " << coverage << endl;
@@ -376,7 +406,7 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float dis = calculate_distance(final_path);
     //calculate path distance
     cout << "TOTAL DISTANCE: " << dis  << endl;
-    //if (dis > 2000.f) return;
+    if (dis > 5100.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -404,7 +434,7 @@ void method1(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
 void method2(Polyhedron& poly, SurfaceMesh& surface, string path_file, float curr_res, int nb_layers, float min_cov, float curr_radius, std::vector<SurfaceMesh*>& segments_vec) {
     float near = 1.0f;
-    float far = 4.f;
+    float far = 8.f;
     float Hfov = 120.f;
     float Vfov = 120.f;
     LayeredPP lpp(near, far);
@@ -415,10 +445,32 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
     vector< vector<Eigen::Vector3f >> path_segments;
 
+    //sort segments
+    vector<float> int_order;
+    for (int i = 0; i < segments_vec.size(); i++)
+    {
+        SurfaceMesh* s = segments_vec[i];
+        float min = 9999999999.f;
+        for (surface_vertex_descriptor vd: s->vertices())
+        {
+            float y = s->point(vd).y();
+            if (y < min)  min = y;
+        }
+
+        int_order.push_back(min);
+    }
+
+    //std::cout << "index order: ";
+    //for (auto i : sort_indexes(int_order)) {
+    //    std::cout << " " << i << "= " << int_order[i] << endl;
+    //}
+
 
     vector< Viewpoints> all_final_viewpoints;
     //construct path for every segment 
-    for (int i = 0; i < segments_vec.size(); i++)
+    //for (int i = 0; i < segments_vec.size(); i++)
+    //iterate through submeshes in vertical order
+    for (auto i: sort_indexes(int_order))
     {
         SurfaceMesh seg_surf = *segments_vec[i];
         Polyhedron seg_poly;
@@ -588,7 +640,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
 
                 float angle = std::acos(dot / std::sqrtf(dir.squaredNorm() * n.squaredNorm())) * 180.f / M_PI;
                 //cout << angle << endl;
-                if ((180 - angle) <= 30.f) {
+                if ((180 - angle) <= 60.f) {
                     //if (!MyMesh::ray_box_interstction(surface, position, Eigen::Vector3f(p.x, p.y, p.z), tree)) {
                     validation_cloud->points.push_back(p);
                     //}
@@ -615,7 +667,7 @@ void method2(Polyhedron& poly, SurfaceMesh& surface, string path_file, float cur
     float dis = calculate_distance(final_path);
     //calculate path distance
     cout << "TOTAL DISTANCE: " << dis << endl;
-    if (dis > 1600.f) return;
+    if (dis > 5700.f) return;
 
     //output path
     path_file += std::string("_").append(std::to_string(curr_res));
@@ -698,8 +750,13 @@ int main(int argc, char* argv[])
         float curr_radius = min_radius;
         std::vector<SurfaceMesh*> segments_vec;
         //segment surface into segemnts
+        auto start = std::chrono::high_resolution_clock::now();
         MyMesh::segment_mesh(surface, segments_vec);
         //MyMesh::skeleton_segment_mesh(poly, segments_vec);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "DURATION: " << duration.count() << endl;
+        
 
         while (curr_res <= max_res) {
 
